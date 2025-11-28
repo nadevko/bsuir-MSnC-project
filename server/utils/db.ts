@@ -1,16 +1,10 @@
 import Database from "better-sqlite3";
 import { join } from "path";
-
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  passwordHash: string;
-  birthdate: string;
-  createdAt: string;
-}
+import type { User, Session } from "./types";
 
 const db = new Database(join(process.cwd(), "data.sqlite"));
+
+db.pragma("journal_mode = WAL");
 
 db.prepare(
   `
@@ -30,9 +24,22 @@ db.prepare(
 CREATE TABLE IF NOT EXISTS sessions (
   jti TEXT PRIMARY KEY,
   userId TEXT NOT NULL,
-  expiresAt TEXT NOT NULL
+  expiresAt TEXT NOT NULL,
+  invalidatedAt TEXT,
+  FOREIGN KEY (userId) REFERENCES users(id)
 )
 `,
 ).run();
 
+const globalWithCleanup = globalThis as unknown as {
+  __sessionsCleanupInterval?: NodeJS.Timeout;
+};
+
+if (!globalWithCleanup.__sessionsCleanupInterval) {
+  globalWithCleanup.__sessionsCleanupInterval = setInterval(() => {
+    db.prepare("DELETE FROM sessions WHERE expiresAt < datetime('now')").run();
+  }, 3600000);
+}
+
 export default db;
+export type { User, Session };

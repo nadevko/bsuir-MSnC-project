@@ -2,44 +2,69 @@ import jwt from "jsonwebtoken";
 import { setCookie, getCookie, H3Event } from "h3";
 import { useRuntimeConfig } from "#imports";
 import db from "./db";
+import type { User, Session } from "./types";
+import crypto from "crypto";
 
-type LightUser = {
-  id: string;
+interface TokenPayload {
+  sub: string;
   username: string;
-};
+  jti: string;
+}
 
-export function signToken(user: LightUser) {
+export function getJwtConfig() {
   const config = useRuntimeConfig();
-  const secret = String(config.jwtSecret);
-  const expiresSec =
-    Number(config.jwtExpiresInSeconds) ||
-    (typeof config.jwtExpiresIn === "number"
-      ? Number(config.jwtExpiresIn)
-      : 3600);
+  return {
+    secret: String(config.jwtSecret),
+    expiresInSeconds:
+      Number(config.jwtExpiresInSeconds) ||
+      (typeof config.jwtExpiresIn === "string"
+        ? parseInt(config.jwtExpiresIn) * 3600
+        : 3600),
+  };
+}
 
-  const jti = (globalThis as any).crypto?.randomUUID?.() ?? String(Date.now());
+export function generateCsrfToken(): string {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+export function signToken(user: Pick<User, "id" | "username">) {
+  const { secret, expiresInSeconds } = getJwtConfig();
+  const jti = crypto.randomUUID();
 
   const token = jwt.sign(
     { sub: user.id, username: user.username, jti },
     secret,
-    { expiresIn: `${expiresSec}s` },
+    { expiresIn: `${expiresInSeconds}s` },
   );
 
-  const expiresAt = new Date(Date.now() + expiresSec * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
+
   db.prepare(
     "INSERT INTO sessions (jti, userId, expiresAt) VALUES (?, ?, ?)",
-  ).run(jti, user.id, expiresAt);
+  ).run(jti, user.id, expiresAt.toISOString());
 
-  return token;
+  return { token, expiresAt };
 }
 
 export function setTokenCookie(event: H3Event, token: string) {
+  const { expiresInSeconds } = getJwtConfig();
+
   setCookie(event, "token", token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 3600,
+    maxAge: expiresInSeconds,
+    expires: new Date(Date.now() + expiresInSeconds * 1000),
+  });
+}
+
+export function setCsrfCookie(event: H3Event, token: string) {
+  setCookie(event, "csrf-token", token, {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
   });
 }
 
@@ -47,24 +72,25 @@ export function getUserIdFromToken(event: H3Event): string | null {
   const token = getCookie(event, "token");
   if (!token) return null;
 
-  const config = useRuntimeConfig();
-  try {
-    const payload = jwt.verify(token, String(config.jwtSecret)) as {
-      sub: string;
-      jti?: string;
-    };
-    const jti = payload.jti;
-    if (!jti) return null;
+  const { secret } = getJwtConfig();
 
-    const row = db
-      .prepare("SELECT jti, userId, expiresAt FROM sessions WHERE jti = ?")
-      .get(jti) as
-      | { jti: string; userId: string; expiresAt: string }
+  try {
+    const payload = jwt.verify(token, secret) as TokenPayload;
+
+    if (!payload.jti) return null;
+
+    const session = db
+      .prepare(
+        "SELECT userId, expiresAt, invalidatedAt FROM sessions WHERE jti = ?",
+      )
+      .get(payload.jti) as
+      | Pick<Session, "userId" | "expiresAt" | "invalidatedAt">
       | undefined;
 
-    if (!row) return null;
-    if (new Date(row.expiresAt).getTime() < Date.now()) {
-      db.prepare("DELETE FROM sessions WHERE jti = ?").run(jti);
+    if (!session || session.invalidatedAt) return null;
+
+    if (new Date(session.expiresAt).getTime() < Date.now()) {
+      db.prepare("DELETE FROM sessions WHERE jti = ?").run(payload.jti);
       return null;
     }
 
@@ -72,4 +98,44 @@ export function getUserIdFromToken(event: H3Event): string | null {
   } catch {
     return null;
   }
+}
+
+export function invalidateToken(event: H3Event): boolean {
+  const token = getCookie(event, "token");
+  if (!token) return false;
+
+  const { secret } = getJwtConfig();
+
+  try {
+    const payload = jwt.verify(token, secret) as TokenPayload;
+    if (payload.jti) {
+      db.prepare(
+        "UPDATE sessions SET invalidatedAt = datetime('now') WHERE jti = ?",
+      ).run(payload.jti);
+    }
+  } catch {
+    return false;
+  }
+
+  return true;
+}
+
+export function clearTokenCookie(event: H3Event) {
+  setCookie(event, "token", "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+    expires: new Date(0),
+  });
+
+  setCookie(event, "csrf-token", "", {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+    expires: new Date(0),
+  });
 }

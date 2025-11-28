@@ -1,15 +1,26 @@
-import db, { User } from "../utils/db";
+import db, { type User } from "../utils/db";
 import { getUserIdFromToken } from "../utils/auth";
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler((event) => {
   const userId = getUserIdFromToken(event);
-  if (!userId)
-    throw createError({ statusCode: 401, statusMessage: "Unauthorized" });
 
-  const stmt = db.prepare("SELECT id, username, email FROM users WHERE id = ?");
-  const user = stmt.get(userId) as User | undefined;
-  if (!user)
-    throw createError({ statusCode: 401, statusMessage: "Unauthorized" });
+  if (!userId) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: "Unauthorized",
+    });
+  }
+
+  const user = db
+    .prepare("SELECT id, username, email FROM users WHERE id = ?")
+    .get(userId) as { id: string; username: string; email: string } | undefined;
+
+  if (!user) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: "Unauthorized",
+    });
+  }
 
   return user;
 });
