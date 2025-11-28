@@ -1,5 +1,5 @@
 .direnv
-*.sqlite
+*.sqlite*
 
 # Nuxt dev/build outputs
 .output

@@ -1,12 +1,16 @@
-import { defineNuxtPlugin } from "nuxt/app"
+import { defineNuxtPlugin } from "nuxt/app";
+import { useAuth } from "../composables/useAuth";
+import { useTokenRefresh } from "../composables/useTokenRefresh";
 
-export default defineNuxtPlugin(async (nuxtApp) => {
-    // При загрузке приложения делаем GET запрос чтобы получить CSRF токен
-    try {
-        await $fetch("/api/me").catch(() => {
-            // Нам нужен только CSRF токен в куке, ошибки не важны
-        })
-    } catch {
-        // Ignore
-    }
-})
+export default defineNuxtPlugin(async () => {
+  try {
+    await $fetch("/api/me").catch(() => {});
+  } catch {}
+
+  await new Promise((resolve) => setTimeout(resolve, 50));
+
+  if (import.meta.client) {
+    const auth = useAuth();
+    useTokenRefresh(auth.user);
+  }
+});

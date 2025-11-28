@@ -1,153 +1,154 @@
-import { ref, reactive } from "vue"
+import { ref, reactive } from "vue";
 import {
   isNetworkError,
   isAuthError,
   extractErrorMessage,
   extractFieldError,
-} from "./useApiError"
-import { useCsrfToken } from "./useCsrfToken"
+} from "./useApiError";
+import { useCsrfToken } from "./useCsrfToken";
 
 export interface User {
-  id: string
-  username: string
-  email: string
+  id: string;
+  username: string;
+  email: string;
 }
 
 export interface FormErrors {
-  general?: string
-  username?: string
-  email?: string
-  password?: string
-  birthdate?: string
+  general?: string;
+  username?: string;
+  email?: string;
+  password?: string;
+  birthdate?: string;
 }
 
 export function useAuth() {
-  const user = ref<User | null>(null)
-  const networkError = ref<string | null>(null)
+  const user = ref<User | null>(null);
+  const networkError = ref<string | null>(null);
 
   const loading = reactive({
     register: false,
     login: false,
     logout: false,
     refresh: false,
-  })
+  });
 
-  const errors = reactive<FormErrors>({})
+  const errors = reactive<FormErrors>({});
 
   function clearErrors() {
-    errors.general = undefined
-    errors.username = undefined
-    errors.email = undefined
-    errors.password = undefined
-    errors.birthdate = undefined
-    networkError.value = null
+    errors.general = undefined;
+    errors.username = undefined;
+    errors.email = undefined;
+    errors.password = undefined;
+    errors.birthdate = undefined;
+    networkError.value = null;
   }
 
   async function fetchMe() {
     try {
-      const data = await $fetch<User>("/api/me")
-      user.value = data ?? null
+      const data = await $fetch<User>("/api/me");
+      user.value = data ?? null;
     } catch (e) {
       if (isAuthError(e)) {
-        user.value = null
+        user.value = null;
       }
     }
   }
 
   async function register(payload: {
-    username: string
-    email: string
-    password: string
-    birthdate: string
+    username: string;
+    email: string;
+    password: string;
+    birthdate: string;
   }) {
-    loading.register = true
-    clearErrors()
+    loading.register = true;
+    clearErrors();
 
     try {
-      const { getHeader } = useCsrfToken()
+      const csrfComposable = useCsrfToken();
 
       const userData = await $fetch<User>("/api/register", {
         method: "POST",
         body: payload,
-        headers: getHeader(),
-      })
+        headers: csrfComposable.getHeader(),
+      });
 
-      user.value = userData ?? null
+      user.value = userData ?? null;
     } catch (e: any) {
       if (isNetworkError(e)) {
-        networkError.value = "Network error. Please check your connection."
+        networkError.value = "Network error. Please check your connection.";
       } else if (isAuthError(e)) {
-        errors.general = "Session expired. Please try again."
-        user.value = null
+        errors.general = "Session expired. Please try again.";
+        user.value = null;
       } else {
-        const msg = extractErrorMessage(e)
-        const field = extractFieldError(e)
+        const msg = extractErrorMessage(e);
+        const field = extractFieldError(e);
 
         if (field) {
-          errors[field as keyof FormErrors] = msg
+          errors[field as keyof FormErrors] = msg;
         } else {
-          errors.general = msg
+          errors.general = msg;
         }
       }
-      throw e
+      throw e;
     } finally {
-      loading.register = false
+      loading.register = false;
     }
   }
 
   async function login(payload: { email: string; password: string }) {
-    loading.login = true
-    clearErrors()
+    loading.login = true;
+    clearErrors();
 
     try {
-      const { getHeader } = useCsrfToken()
+      const csrfComposable = useCsrfToken();
 
       const userData = await $fetch<User>("/api/login", {
         method: "POST",
         body: payload,
-        headers: getHeader(),
-      })
+        headers: csrfComposable.getHeader(),
+      });
 
-      user.value = userData ?? null
+      user.value = userData ?? null;
     } catch (e: any) {
       if (isNetworkError(e)) {
-        networkError.value = "Network error. Please check your connection."
+        networkError.value = "Network error. Please check your connection.";
       } else if (isAuthError(e)) {
-        errors.general = "Session expired. Please try again."
-        user.value = null
+        errors.general = "Session expired. Please try again.";
+        user.value = null;
       } else {
-        const msg = extractErrorMessage(e)
-        const field = extractFieldError(e)
+        const msg = extractErrorMessage(e);
+        const field = extractFieldError(e);
 
         if (field) {
-          errors[field as keyof FormErrors] = msg
+          errors[field as keyof FormErrors] = msg;
         } else {
-          errors.general = msg
+          errors.general = msg;
         }
       }
-      throw e
+      throw e;
     } finally {
-      loading.login = false
+      loading.login = false;
     }
   }
 
   async function logout() {
-    loading.logout = true
-    clearErrors()
+    loading.logout = true;
+    clearErrors();
 
     try {
-      const { getHeader } = useCsrfToken()
+      const csrfComposable = useCsrfToken();
+
       await $fetch("/api/logout", {
         method: "POST",
-        headers: getHeader(),
-      })
-      user.value = null
+        headers: csrfComposable.getHeader(),
+      });
+      user.value = null;
     } catch (e: any) {
-      const msg = extractErrorMessage(e)
-      errors.general = msg
-      throw e
+      const msg = extractErrorMessage(e);
+      errors.general = msg;
+      throw e;
     } finally {
-      loading.logout = false
+      loading.logout = false;
     }
   }
 
@@ -161,5 +162,5 @@ export function useAuth() {
     login,
     logout,
     clearErrors,
-  }
+  };
 }
