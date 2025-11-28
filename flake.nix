@@ -40,6 +40,10 @@
         devShells = nabiki.lib.rebase (nabiki.lib.readDevShellsOverlay { } private ./pkgs) pkgs;
         formatter = treefmt.config.build.wrapper;
         checks.treefmt = treefmt.config.build.check self;
+        apps.default = {
+          type = "app";
+          program = nixpkgs.lib.getExe (legacyPackages.callPackage ./pkgs/default/app.nix { });
+        };
       }
     )
     // {
