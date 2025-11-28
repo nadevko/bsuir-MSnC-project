@@ -5,7 +5,6 @@
     </h1>
 
     <div v-if="!user">
-      <!-- register form -->
       <h2>Register</h2>
       <form @submit.prevent="onRegister">
         <input v-model="registerForm.username" placeholder="Username" />
@@ -17,7 +16,7 @@
         />
         <input
           v-model="registerForm.birthdate"
-          placeholder="Birthdate"
+          placeholder="Birthdate YYYY-MM-DD"
           type="date"
         />
         <button type="submit" :disabled="auth.loading.register">
@@ -25,7 +24,6 @@
         </button>
       </form>
 
-      <!-- login form -->
       <h2>Login</h2>
       <form @submit.prevent="onLogin">
         <input v-model="loginForm.email" placeholder="Email" type="email" />
@@ -66,8 +64,22 @@ const registerForm = reactive({
 });
 const loginForm = reactive({ email: "", password: "" });
 
+function validateRegisterForm(form: typeof registerForm) {
+  if (!form.username.trim()) throw new Error("Username required");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+    throw new Error("Invalid email");
+  if (form.password.length < 8) throw new Error("Password too short");
+
+  const bd = new Date(form.birthdate);
+  if (isNaN(bd.getTime())) throw new Error("Invalid birthdate");
+  const age =
+    (new Date().getTime() - bd.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+  if (age < 14 || age > 120) throw new Error("Age must be between 14 and 120");
+}
+
 async function onRegister() {
   try {
+    validateRegisterForm(registerForm);
     await auth.register({
       username: registerForm.username,
       email: registerForm.email,
@@ -78,7 +90,9 @@ async function onRegister() {
     registerForm.email = "";
     registerForm.password = "";
     registerForm.birthdate = "";
-  } catch {}
+  } catch (e: any) {
+    auth.error.value = e?.message || "Registration failed";
+  }
 }
 
 async function onLogin() {
@@ -86,7 +100,9 @@ async function onLogin() {
     await auth.login({ email: loginForm.email, password: loginForm.password });
     loginForm.email = "";
     loginForm.password = "";
-  } catch {}
+  } catch (e: any) {
+    auth.error.value = e?.message || "Login failed";
+  }
 }
 
 async function onLogout() {
