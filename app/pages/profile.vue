@@ -1,0 +1,790 @@
+<template>
+  <div>
+    <!-- HEADER -->
+    <header class="header">
+      <div class="header-left">
+        <button class="burger" aria-label="menu">☰</button>
+      </div>
+
+      <!-- Centered logo -->
+      <div class="logo-center">
+        <NuxtLink to="/" class="logo-link">
+          <img
+            src="/assets/logo.png"
+            alt="Ezzy Step"
+            class="logo logo-desktop"
+          />
+          <img
+            src="/assets/logo.png"
+            alt="Ezzy Step"
+            class="logo logo-mobile"
+          />
+        </NuxtLink>
+      </div>
+
+      <!-- Desktop right -->
+      <div class="header-right">
+        <div class="search-wrap">
+          <input type="text" class="search-input" placeholder="Search" />
+        </div>
+        <NuxtLink href="#" class="btn join">SHOP</NuxtLink>
+        <button @click="onLogout" class="btn outline">LOG OUT</button>
+      </div>
+
+      <!-- Mobile icons -->
+      <div class="mobile-icons" aria-hidden="true">
+        <button class="icon-btn" aria-label="notifications">
+          <img src="/assets/bell.png" alt="" />
+        </button>
+        <button class="icon-btn" aria-label="search">
+          <img src="/assets/search.png" alt="" />
+        </button>
+      </div>
+    </header>
+
+    <!-- Profile Content -->
+    <main>
+      <div class="profile-container">
+        <!-- Left Column - User Info -->
+        <div class="profile-sidebar">
+          <div class="profile-card user-info">
+            <img
+              src="/assets/user-avatar.png"
+              alt="User Avatar"
+              class="avatar"
+            />
+            <h2 class="username">{{ user?.username }}</h2>
+            <p class="user-email">{{ user?.email }}</p>
+            <button class="edit-profile-btn" @click="editMode = !editMode">
+              {{ editMode ? "Cancel" : "Edit Profile" }}
+            </button>
+          </div>
+
+          <div class="profile-card personal-info">
+            <h3>Personal Information</h3>
+            <div class="info-item">
+              <span class="info-label">User ID</span>
+              <span class="info-value">{{ user?.id }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Email</span>
+              <span class="info-value">{{ user?.email }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Username</span>
+              <span class="info-value">{{ user?.username }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Member Since</span>
+              <span class="info-value">{{ formatDate(userJoinDate) }}</span>
+            </div>
+          </div>
+
+          <div class="profile-card order-stats">
+            <h3>Account Status</h3>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <div class="stat-value">Active</div>
+                <div class="stat-label">Status</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">✓</div>
+                <div class="stat-label">Verified</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column - Orders -->
+        <div class="profile-content">
+          <div class="section-title">
+            <h2>Shopping History</h2>
+            <NuxtLink to="/catalog" class="view-all">Browse Catalog</NuxtLink>
+          </div>
+
+          <div v-if="orders.length === 0" class="empty-state">
+            <p>No orders yet. Start shopping to see them here!</p>
+            <NuxtLink to="/catalog" class="btn-shop">Go to Catalog</NuxtLink>
+          </div>
+
+          <div v-else class="cart-items">
+            <div v-for="order in orders" :key="order.id" class="cart-item">
+              <img
+                :src="`/assets/${order.image}`"
+                :alt="order.name"
+                class="item-image"
+              />
+              <div class="item-details">
+                <div>
+                  <h3 class="item-name">{{ order.name }}</h3>
+                  <p class="item-brand">{{ order.brand }}</p>
+                  <span class="item-size">Size: {{ order.size }}</span>
+                </div>
+                <div class="item-price">${{ order.price }}</div>
+              </div>
+              <div class="item-actions">
+                <button class="remove-item" @click="removeOrder(order.id)">
+                  ×
+                </button>
+                <div class="quantity-controls">
+                  <button class="quantity-btn" @click="decreaseQty(order.id)">
+                    -
+                  </button>
+                  <span class="quantity">{{ order.qty }}</span>
+                  <button class="quantity-btn" @click="increaseQty(order.id)">
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="orders.length > 0" class="checkout-section">
+            <div class="order-summary">
+              <span class="summary-label">Subtotal</span>
+              <span class="summary-value">${{ subtotal }}</span>
+            </div>
+            <div class="order-summary">
+              <span class="summary-label">Shipping</span>
+              <span class="summary-value">$15.00</span>
+            </div>
+            <div class="order-summary total">
+              <span class="summary-label">Total</span>
+              <span class="summary-value"
+                >${{ (subtotal + 15).toFixed(2) }}</span
+              >
+            </div>
+            <button class="checkout-btn" @click="checkout">
+              Proceed to Checkout
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, ref, reactive } from "vue";
+import { useAuth } from "~~/composables/useAuth";
+
+definePageMeta({
+  middleware: "auth",
+});
+
+const auth = useAuth();
+const user = computed(() => auth.user.value);
+const userJoinDate = ref(new Date());
+const editMode = ref(false);
+
+const orders = reactive([
+  {
+    id: 1,
+    name: "Nike Air Max 270",
+    brand: "Nike",
+    size: "42",
+    price: 150,
+    image: "cart-item1.png",
+    qty: 1,
+  },
+  {
+    id: 2,
+    name: "Adidas Ultraboost 22",
+    brand: "Adidas",
+    size: "43",
+    price: 180,
+    image: "cart-item2.png",
+    qty: 1,
+  },
+]);
+
+const subtotal = computed(() => {
+  return orders.reduce((sum, order) => sum + order.price * order.qty, 0);
+});
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+function increaseQty(id: number) {
+  const order = orders.find((o) => o.id === id);
+  if (order) order.qty++;
+}
+
+function decreaseQty(id: number) {
+  const order = orders.find((o) => o.id === id);
+  if (order && order.qty > 1) order.qty--;
+}
+
+function removeOrder(id: number) {
+  const index = orders.findIndex((o) => o.id === id);
+  if (index > -1) {
+    orders.splice(index, 1);
+  }
+}
+
+async function checkout() {
+  alert("Proceeding to checkout with " + orders.length + " items");
+}
+
+async function onLogout() {
+  try {
+    await auth.logout();
+    await navigateTo("/login");
+  } catch (error) {
+    console.error("Logout failed:", error);
+  }
+}
+
+onMounted(async () => {
+  if (!user.value) {
+    await auth.fetchMe();
+  }
+});
+</script>
+
+<style scoped>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Header */
+.header {
+  width: 92%;
+  max-width: 1400px;
+  margin: 18px auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 18px;
+  border-radius: 60px;
+  background: #fff;
+  border: 2px solid #3a3a3a;
+  justify-content: space-between;
+  position: relative;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.burger {
+  font-size: 26px;
+  line-height: 1;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #111;
+  padding: 8px;
+}
+
+.logo-center {
+  position: absolute;
+  left: 45%;
+  transform: translateX(-50%);
+}
+
+.logo {
+  height: 60px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.logo-mobile {
+  display: none;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.search-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  height: 40px;
+  padding: 8px 14px;
+  border-radius: 22px;
+  border: 1px solid #999;
+  min-width: 220px;
+  font-size: 15px;
+}
+
+.btn {
+  display: inline-block;
+  text-decoration: none;
+  padding: 8px 18px;
+  border-radius: 22px;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn.join {
+  background: #000;
+  color: #fff;
+}
+
+.btn.outline {
+  background: transparent;
+  color: #000;
+  border: 1px solid #000;
+}
+
+.btn:hover {
+  opacity: 0.8;
+}
+
+.mobile-icons {
+  display: none;
+  gap: 12px;
+  align-items: center;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+}
+
+.icon-btn img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+/* Profile Container */
+.profile-container {
+  width: 92%;
+  max-width: 1400px;
+  margin: 40px auto;
+  display: flex;
+  gap: 40px;
+}
+
+.profile-sidebar {
+  width: 30%;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.profile-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 25px;
+  border: 1px solid #f0f0f0;
+}
+
+.user-info {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #f0f0f0;
+  margin-bottom: 20px;
+}
+
+.username {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.user-email {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.edit-profile-btn {
+  padding: 10px 20px;
+  background: #000;
+  color: #fff;
+  border: none;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+  width: 100%;
+}
+
+.edit-profile-btn:hover {
+  background: #333;
+}
+
+.personal-info h3,
+.order-stats h3 {
+  font-size: 18px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.info-label {
+  color: #666;
+}
+
+.info-value {
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 15px;
+  background: #f9f9f9;
+  border-radius: 12px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #666;
+}
+
+/* Profile Content */
+.profile-content {
+  width: 70%;
+}
+
+.section-title {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.view-all {
+  font-size: 16px;
+  color: #3a3a3a;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.view-all:hover {
+  text-decoration: underline;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  background: #f9f9f9;
+  border-radius: 16px;
+  color: #666;
+}
+
+.btn-shop {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 10px 25px;
+  background: #000;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 25px;
+  font-weight: 600;
+  transition: background 0.3s;
+}
+
+.btn-shop:hover {
+  background: #333;
+}
+
+.cart-items {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cart-item {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f0f0f0;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
+}
+
+.cart-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.12);
+}
+
+.item-image {
+  width: 120px;
+  height: 120px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.item-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.item-name {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.item-brand {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.item-size {
+  display: inline-block;
+  padding: 5px 12px;
+  background: #f0f0f0;
+  border-radius: 20px;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.item-price {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.item-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.remove-item {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 20px;
+  transition: color 0.3s;
+}
+
+.remove-item:hover {
+  color: #ff3b30;
+}
+
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.quantity-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid #ddd;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.quantity-btn:hover {
+  background: #f5f5f5;
+}
+
+.quantity {
+  font-weight: bold;
+  min-width: 30px;
+  text-align: center;
+}
+
+.checkout-section {
+  margin-top: 30px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 25px;
+  border: 1px solid #f0f0f0;
+}
+
+.order-summary {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.order-summary.total {
+  border-bottom: none;
+  font-weight: bold;
+  font-size: 18px;
+  margin-bottom: 25px;
+}
+
+.summary-label {
+  color: #666;
+}
+
+.summary-value {
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.checkout-btn {
+  width: 100%;
+  padding: 15px;
+  background: #000;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.checkout-btn:hover {
+  background: #333;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .header {
+    width: 100%;
+    margin: 12px 0 0 0;
+    border-radius: 60px;
+    padding: 12px 18px;
+    background: #3a3a3a;
+    border: 2px solid #3a3a3a;
+    justify-content: flex-start;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: initial;
+  }
+
+  .burger {
+    color: #fff;
+  }
+
+  .logo-center {
+    position: static;
+    transform: none;
+    margin: 0 auto;
+    flex: 1;
+    text-align: center;
+  }
+
+  .logo-desktop {
+    display: none;
+  }
+
+  .logo-mobile {
+    display: block;
+    height: 38px;
+  }
+
+  .mobile-icons {
+    display: flex;
+    margin-left: auto;
+    flex: initial;
+  }
+
+  .mobile-icons img {
+    filter: brightness(0) invert(1);
+    width: 20px;
+    height: 20px;
+  }
+
+  .header-right {
+    display: none;
+  }
+
+  .profile-container {
+    width: 95%;
+    flex-direction: column;
+    gap: 25px;
+    margin: 20px auto;
+  }
+
+  .profile-sidebar,
+  .profile-content {
+    width: 100%;
+  }
+
+  .cart-item {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .item-details {
+    align-items: center;
+  }
+
+  .item-actions {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+    margin-top: 15px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

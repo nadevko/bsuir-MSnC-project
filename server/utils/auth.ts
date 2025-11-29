@@ -27,17 +27,22 @@ export function generateCsrfToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
-export function signToken(user: Pick<User, "id" | "username">) {
+export function signToken(
+  user: Pick<User, "id" | "username">,
+  rememberMe: boolean = false,
+) {
   const { secret, expiresInSeconds } = getJwtConfig();
   const jti = crypto.randomUUID();
+
+  const tokenExpiresIn = rememberMe ? expiresInSeconds * 7 : expiresInSeconds;
 
   const token = jwt.sign(
     { sub: user.id, username: user.username, jti },
     secret,
-    { expiresIn: `${expiresInSeconds}s` },
+    { expiresIn: `${tokenExpiresIn}s` },
   );
 
-  const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
+  const expiresAt = new Date(Date.now() + tokenExpiresIn * 1000);
 
   db.prepare(
     "INSERT INTO sessions (jti, userId, expiresAt) VALUES (?, ?, ?)",

@@ -13,6 +13,7 @@ export default defineEventHandler(async (event) => {
 
     const email = body.email.trim().toLowerCase();
     const password = body.password;
+    const rememberMe = body.rememberMe ?? false;
 
     const user = db
       .prepare("SELECT * FROM users WHERE email = ?")
@@ -27,7 +28,7 @@ export default defineEventHandler(async (event) => {
       throw new ValidationError("password", "Invalid email or password");
     }
 
-    const { token } = signToken(user);
+    const { token } = signToken(user, rememberMe);
     setTokenCookie(event, token);
 
     return {

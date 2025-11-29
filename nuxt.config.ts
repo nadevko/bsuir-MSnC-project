@@ -7,4 +7,9 @@ export default defineNuxtConfig({
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || "1h",
     jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d",
   },
+  vite: {
+    server: {
+      allowedHosts: ["show.nadevko.cc"],
+    },
+  },
 });

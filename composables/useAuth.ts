@@ -23,7 +23,6 @@ export interface FormErrors {
 
 export function useAuth() {
   const user = ref<User | null>(null);
-  const networkError = ref<string | null>(null);
 
   const loading = reactive({
     register: false,
@@ -40,7 +39,6 @@ export function useAuth() {
     errors.email = undefined;
     errors.password = undefined;
     errors.birthdate = undefined;
-    networkError.value = null;
   }
 
   async function fetchMe() {
@@ -75,7 +73,7 @@ export function useAuth() {
       user.value = userData ?? null;
     } catch (e: any) {
       if (isNetworkError(e)) {
-        networkError.value = "Network error. Please check your connection.";
+        errors.general = "Network error. Please check your connection.";
       } else if (isAuthError(e)) {
         errors.general = "Session expired. Please try again.";
         user.value = null;
@@ -95,7 +93,11 @@ export function useAuth() {
     }
   }
 
-  async function login(payload: { email: string; password: string }) {
+  async function login(payload: {
+    email: string;
+    password: string;
+    rememberMe?: boolean;
+  }) {
     loading.login = true;
     clearErrors();
 
@@ -111,7 +113,7 @@ export function useAuth() {
       user.value = userData ?? null;
     } catch (e: any) {
       if (isNetworkError(e)) {
-        networkError.value = "Network error. Please check your connection.";
+        errors.general = "Network error. Please check your connection.";
       } else if (isAuthError(e)) {
         errors.general = "Session expired. Please try again.";
         user.value = null;
@@ -155,7 +157,6 @@ export function useAuth() {
   return {
     user,
     errors,
-    networkError,
     loading,
     fetchMe,
     register,
