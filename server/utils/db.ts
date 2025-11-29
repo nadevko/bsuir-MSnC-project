@@ -44,8 +44,9 @@ db.prepare(
   ` CREATE TABLE IF NOT EXISTS carts (
    user_id TEXT NOT NULL,
    product_id INTEGER NOT NULL,
+   size INTEGER NOT NULL,
    amount INTEGER NOT NULL,
-   PRIMARY KEY (user_id, product_id),
+   PRIMARY KEY (user_id, product_id, size),
    FOREIGN KEY (user_id) REFERENCES users(id),
    FOREIGN KEY (product_id) REFERENCES products(id)
 ) `,

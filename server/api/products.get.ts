@@ -1,19 +1,25 @@
 import db from "../utils/db";
+import type { Product } from "../utils/types";
 
 export default defineEventHandler((event) => {
-  try {
-    const products = db.prepare("SELECT * FROM products").all() as any[];
+  const query = getQuery(event);
+  const searchTerm = ((query.q as string) || "").toLowerCase().trim();
 
-    return products.map((p) => ({
-      ...p,
-      availability: p.amount > p.ordered_amount,
-      sizes: typeof p.sizes === "string" ? JSON.parse(p.sizes) : p.sizes,
-    }));
-  } catch (error) {
-    console.error("Error fetching products:", error);
-    throw createError({
-      statusCode: 500,
-      statusMessage: "Failed to fetch products",
-    });
+  let sql = "SELECT * FROM products";
+  let params: any[] = [];
+
+  if (searchTerm) {
+    sql += " WHERE LOWER(name) LIKE ?";
+    params = [`%${searchTerm}%`];
   }
+
+  sql += " ORDER BY id ASC";
+
+  const products = db.prepare(sql).all(...params) as Product[];
+
+  return products.map((product) => ({
+    ...product,
+    sizes: JSON.parse(product.sizes),
+    availability: product.amount > product.ordered_amount,
+  }));
 });

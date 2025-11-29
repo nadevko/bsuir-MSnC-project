@@ -61,11 +61,7 @@
         <!-- Top Right - Product Info -->
         <div class="model-info">
           <h1 class="model-name">{{ product.name }}</h1>
-          <div
-            :class="['model-available', { unavailable: !product.availability }]"
-          >
-            {{ product.availability ? "Model is available" : "Out of stock" }}
-          </div>
+          <div class="model-available">Model is available</div>
           <div class="model-price">${{ product.price }}</div>
 
           <div class="size-selection">
@@ -83,7 +79,9 @@
           </div>
 
           <div class="action-buttons">
-            <button class="add-to-cart" @click="addToCart">ADD TO CART</button>
+            <button class="add-to-cart" :disabled="!user" @click="addToCart">
+              {{ user ? "ADD TO CART" : "LOGIN TO BUY" }}
+            </button>
             <button class="back-button" @click="goBack">←</button>
           </div>
         </div>
@@ -94,7 +92,7 @@
           <div class="buy-now-content">
             <div class="order-section">
               <img src="/assets/truck.png" alt="Delivery" class="truck-icon" />
-              <button class="order-button" @click="orderNow">ORDER</button>
+              <button class="order-button" @click="buyNow">BUY NOW</button>
               <div class="pickup-options">
                 <div class="pickup-option">
                   <input
@@ -142,7 +140,7 @@
 import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
 import { useAuth } from "~~/composables/useAuth";
-import type { Product } from "~~/server/utils/types";
+import { useCsrfToken } from "~~/composables/useCsrfToken";
 
 const route = useRoute();
 const auth = useAuth();
@@ -152,25 +150,61 @@ const productId = computed(() => route.params.id as string);
 const selectedSize = ref(42);
 const deliveryMethod = ref("store");
 
-const { data: productData } = await useFetch(
-  () => `/api/products/${productId.value}`,
-);
-const product = computed(
-  () =>
-    (productData.value as any) || {
-      name: "",
-      price: 0,
-      sizes: [],
-      availability: false,
-    },
-);
+const sizes = [39, 40, 41, 42, 43, 44, 45];
 
-const sizes = computed(
-  () => product.value.sizes || [39, 40, 41, 42, 43, 44, 45],
-);
+const product = ref({
+  name: "Nike Air Max 270",
+  price: 150,
+  brand: "Nike",
+});
 
-function addToCart() {
-  alert(`Added ${product.value.name} (Size ${selectedSize.value}) to cart!`);
+async function addToCart() {
+  if (!user.value) return;
+
+  try {
+    const csrf = useCsrfToken();
+    await $fetch("/api/cart", {
+      method: "POST",
+      body: {
+        product_id: parseInt(productId.value),
+        size: selectedSize.value,
+        amount: 1,
+      },
+      headers: csrf.getHeader(),
+    });
+    alert(`Added ${product.value.name} (Size ${selectedSize.value}) to cart!`);
+  } catch (error) {
+    console.error("Failed to add to cart:", error);
+    alert("Failed to add to cart");
+  }
+}
+
+async function buyNow() {
+  if (!user.value) return;
+
+  try {
+    const csrf = useCsrfToken();
+    // Clear cart
+    await $fetch("/api/cart/clear", {
+      method: "POST",
+      headers: csrf.getHeader(),
+    });
+    // Add product
+    await $fetch("/api/cart", {
+      method: "POST",
+      body: {
+        product_id: parseInt(productId.value),
+        size: selectedSize.value,
+        amount: 1,
+      },
+      headers: csrf.getHeader(),
+    });
+    // Redirect to profile
+    await navigateTo("/profile");
+  } catch (error) {
+    console.error("Failed to buy now:", error);
+    alert("Failed to buy now");
+  }
 }
 
 function orderNow() {
@@ -364,10 +398,6 @@ onMounted(async () => {
   margin-bottom: 20px;
 }
 
-.model-available.unavailable {
-  color: #d32f2f;
-}
-
 .model-price {
   font-size: 28px;
   font-weight: bold;
@@ -432,8 +462,13 @@ onMounted(async () => {
   transition: background 0.3s;
 }
 
-.add-to-cart:hover {
+.add-to-cart:hover:not(:disabled) {
   background: #333;
+}
+
+.add-to-cart:disabled {
+  background: #999;
+  cursor: not-allowed;
 }
 
 .back-button {

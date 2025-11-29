@@ -27,7 +27,7 @@
         <div class="search-wrap">
           <input type="text" class="search-input" placeholder="Search" />
         </div>
-        <NuxtLink href="#" class="btn join">SHOP</NuxtLink>
+        <NuxtLink to="/catalog" class="btn join">SHOP</NuxtLink>
         <button @click="onLogout" class="btn outline">LOG OUT</button>
       </div>
 
@@ -95,43 +95,59 @@
           </div>
         </div>
 
-        <!-- Right Column - Orders -->
+        <!-- Right Column - Cart -->
         <div class="profile-content">
           <div class="section-title">
-            <h2>Shopping History</h2>
-            <NuxtLink to="/catalog" class="view-all">Browse Catalog</NuxtLink>
+            <h2>My Cart</h2>
+            <NuxtLink to="/catalog" class="view-all"
+              >Continue Shopping</NuxtLink
+            >
           </div>
 
-          <div v-if="orders.length === 0" class="empty-state">
-            <p>No orders yet. Start shopping to see them here!</p>
+          <div v-if="isLoadingCart" class="loading">Loading cart...</div>
+
+          <div v-else-if="cartItems.length === 0" class="empty-state">
+            <p>Your cart is empty</p>
             <NuxtLink to="/catalog" class="btn-shop">Go to Catalog</NuxtLink>
           </div>
 
           <div v-else class="cart-items">
-            <div v-for="order in orders" :key="order.id" class="cart-item">
+            <div
+              v-for="item in cartItems"
+              :key="`${item.product_id}-${item.size}`"
+              class="cart-item"
+            >
               <img
-                :src="`/assets/${order.image}`"
-                :alt="order.name"
+                :src="item.small_image"
+                :alt="item.name"
                 class="item-image"
               />
               <div class="item-details">
                 <div>
-                  <h3 class="item-name">{{ order.name }}</h3>
-                  <p class="item-brand">{{ order.brand }}</p>
-                  <span class="item-size">Size: {{ order.size }}</span>
+                  <h3 class="item-name">{{ item.name }}</h3>
+                  <span class="item-size">Size: {{ item.size }}</span>
                 </div>
-                <div class="item-price">${{ order.price }}</div>
+                <div class="item-price">${{ item.price }}</div>
               </div>
               <div class="item-actions">
-                <button class="remove-item" @click="removeOrder(order.id)">
+                <button
+                  class="remove-item"
+                  @click="removeFromCart(item.product_id, item.size)"
+                >
                   ×
                 </button>
                 <div class="quantity-controls">
-                  <button class="quantity-btn" @click="decreaseQty(order.id)">
+                  <button
+                    class="quantity-btn"
+                    @click="decreaseQty(item.product_id, item.size)"
+                  >
                     -
                   </button>
-                  <span class="quantity">{{ order.qty }}</span>
-                  <button class="quantity-btn" @click="increaseQty(order.id)">
+                  <span class="quantity">{{ item.amount }}</span>
+                  <button
+                    class="quantity-btn"
+                    @click="increaseQty(item.product_id, item.size)"
+                  >
                     +
                   </button>
                 </div>
@@ -139,10 +155,10 @@
             </div>
           </div>
 
-          <div v-if="orders.length > 0" class="checkout-section">
+          <div v-if="cartItems.length > 0" class="checkout-section">
             <div class="order-summary">
               <span class="summary-label">Subtotal</span>
-              <span class="summary-value">${{ subtotal }}</span>
+              <span class="summary-value">${{ subtotal.toFixed(2) }}</span>
             </div>
             <div class="order-summary">
               <span class="summary-label">Shipping</span>
@@ -165,8 +181,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, reactive } from "vue";
+import { computed, ref } from "vue";
 import { useAuth } from "~~/composables/useAuth";
+import { useCsrfToken } from "~~/composables/useCsrfToken";
 
 definePageMeta({
   middleware: "auth",
@@ -177,29 +194,34 @@ const user = computed(() => auth.user.value);
 const userJoinDate = ref(new Date());
 const editMode = ref(false);
 
-const orders = reactive([
-  {
-    id: 1,
-    name: "Nike Air Max 270",
-    brand: "Nike",
-    size: "42",
-    price: 150,
-    image: "cart-item1.png",
-    qty: 1,
-  },
-  {
-    id: 2,
-    name: "Adidas Ultraboost 22",
-    brand: "Adidas",
-    size: "43",
-    price: 180,
-    image: "cart-item2.png",
-    qty: 1,
-  },
-]);
+interface CartItem {
+  user_id: string;
+  product_id: number;
+  size: number;
+  amount: number;
+  name: string;
+  price: number;
+  small_image: string;
+}
+
+const {
+  data: cartData,
+  pending: isLoadingCart,
+  refresh: refreshCart,
+} = useFetch("/api/cart", {
+  immediate: true,
+});
+
+const cartItems = computed<CartItem[]>(() => {
+  if (!cartData.value) return [];
+  return Array.isArray(cartData.value) ? cartData.value : [];
+});
 
 const subtotal = computed(() => {
-  return orders.reduce((sum, order) => sum + order.price * order.qty, 0);
+  return cartItems.value.reduce(
+    (sum, item) => sum + item.price * item.amount,
+    0,
+  );
 });
 
 function formatDate(date: Date): string {
@@ -210,25 +232,67 @@ function formatDate(date: Date): string {
   });
 }
 
-function increaseQty(id: number) {
-  const order = orders.find((o) => o.id === id);
-  if (order) order.qty++;
+async function increaseQty(productId: number, size: number) {
+  const item = cartItems.value.find(
+    (i) => i.product_id === productId && i.size === size,
+  );
+  if (item) {
+    try {
+      await $fetch("/api/cart", {
+        method: "PATCH",
+        body: { product_id: productId, size, amount: item.amount + 1 },
+      });
+      await refreshCart();
+    } catch (error) {
+      console.error("Failed to update cart:", error);
+    }
+  }
 }
 
-function decreaseQty(id: number) {
-  const order = orders.find((o) => o.id === id);
-  if (order && order.qty > 1) order.qty--;
+async function decreaseQty(productId: number, size: number) {
+  const item = cartItems.value.find(
+    (i) => i.product_id === productId && i.size === size,
+  );
+  if (item && item.amount > 1) {
+    try {
+      await $fetch("/api/cart", {
+        method: "PATCH",
+        body: { product_id: productId, size, amount: item.amount - 1 },
+      });
+      await refreshCart();
+    } catch (error) {
+      console.error("Failed to update cart:", error);
+    }
+  }
 }
 
-function removeOrder(id: number) {
-  const index = orders.findIndex((o) => o.id === id);
-  if (index > -1) {
-    orders.splice(index, 1);
+async function removeFromCart(productId: number, size: number) {
+  try {
+    const csrf = useCsrfToken();
+    await $fetch("/api/cart", {
+      method: "DELETE",
+      body: { product_id: productId, size },
+      headers: csrf.getHeader(),
+    });
+    await refreshCart();
+  } catch (error) {
+    console.error("Failed to remove from cart:", error);
   }
 }
 
 async function checkout() {
-  alert("Proceeding to checkout with " + orders.length + " items");
+  try {
+    const csrf = useCsrfToken();
+    await $fetch("/api/checkout", {
+      method: "POST",
+      headers: csrf.getHeader(),
+    });
+    await refreshCart();
+    alert("Order completed! Your cart has been cleared.");
+  } catch (error) {
+    console.error("Checkout failed:", error);
+    alert("Checkout failed");
+  }
 }
 
 async function onLogout() {
@@ -535,6 +599,13 @@ onMounted(async () => {
   background: #333;
 }
 
+.loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: #999;
+}
+
 .cart-items {
   display: flex;
   flex-direction: column;
@@ -577,12 +648,6 @@ onMounted(async () => {
   font-size: 18px;
   font-weight: bold;
   margin-bottom: 5px;
-}
-
-.item-brand {
-  color: #666;
-  font-size: 14px;
-  margin-bottom: 10px;
 }
 
 .item-size {

@@ -35,6 +35,7 @@ export interface Product {
 export interface Cart {
   user_id: string;
   product_id: number;
+  size: number;
   amount: number;
 }
 

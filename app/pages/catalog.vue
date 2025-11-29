@@ -30,6 +30,7 @@
             type="text"
             class="search-input"
             placeholder="Search"
+            @keyup.enter="handleSearch"
           />
         </div>
         <NuxtLink v-if="!user" to="/register" class="btn join"
@@ -141,15 +142,25 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useAuth } from "~~/composables/useAuth";
 
 const auth = useAuth();
+const route = useRoute();
+const router = useRouter();
 const user = computed(() => auth.user.value);
-const searchQuery = ref("");
+const searchQuery = ref((route.query.q as string) || "");
 
-const { data: products, pending: isLoading } = useFetch("/api/products", {
-  immediate: true,
-});
+const { data: products, pending: isLoading } = useFetch(
+  () => {
+    const query = route.query.q ? `?q=${route.query.q}` : "";
+    return `/api/products${query}`;
+  },
+  {
+    immediate: true,
+    watch: [() => route.query.q],
+  },
+);
 
 const allProducts = computed(() => {
   if (!products.value) return [];
@@ -159,6 +170,14 @@ const allProducts = computed(() => {
 const premiumProducts = computed(() => allProducts.value.slice(0, 3));
 const popularProducts = computed(() => allProducts.value.slice(3, 6));
 const bestsellerProducts = computed(() => allProducts.value.slice(6, 9));
+
+function handleSearch() {
+  if (searchQuery.value.trim()) {
+    router.push(`/catalog?q=${encodeURIComponent(searchQuery.value)}`);
+  } else {
+    router.push("/catalog");
+  }
+}
 
 onMounted(async () => {
   await auth.fetchMe();
