@@ -70,74 +70,69 @@
 
         <!-- Right column with product grid -->
         <div class="catalog-right">
-          <!-- Level 1 -->
-          <div class="catalog-level">
-            <div class="level-title">Premium Collection</div>
-            <div class="products-grid">
-              <div
-                v-for="product in premiumProducts"
-                :key="product.id"
-                class="product-card"
-              >
-                <NuxtLink :to="`/product/${product.id}`" class="product-link">
-                  <div class="product-image">
-                    <img
-                      :src="`/assets/${product.image}`"
-                      :alt="product.name"
-                    />
-                  </div>
-                  <div class="product-name">{{ product.name }}</div>
-                  <div class="product-price">${{ product.price }}</div>
-                </NuxtLink>
-              </div>
-            </div>
-          </div>
+          <div v-if="isLoading" class="loading">Loading products...</div>
 
-          <!-- Level 2 -->
-          <div class="catalog-level">
-            <div class="level-title">Popular Brands</div>
-            <div class="products-grid">
-              <div
-                v-for="product in popularProducts"
-                :key="product.id"
-                class="product-card"
-              >
-                <NuxtLink :to="`/product/${product.id}`" class="product-link">
-                  <div class="product-image">
-                    <img
-                      :src="`/assets/${product.image}`"
-                      :alt="product.name"
-                    />
-                  </div>
-                  <div class="product-name">{{ product.name }}</div>
-                  <div class="product-price">${{ product.price }}</div>
-                </NuxtLink>
+          <template v-else>
+            <!-- Level 1 -->
+            <div class="catalog-level">
+              <div class="level-title">Premium Collection</div>
+              <div class="products-grid">
+                <div
+                  v-for="product in premiumProducts"
+                  :key="product.id"
+                  class="product-card"
+                >
+                  <NuxtLink :to="`/product/${product.id}`" class="product-link">
+                    <div class="product-image">
+                      <img :src="product.small_image" :alt="product.name" />
+                    </div>
+                    <div class="product-name">{{ product.name }}</div>
+                    <div class="product-price">${{ product.price }}</div>
+                  </NuxtLink>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- Level 3 -->
-          <div class="catalog-level">
-            <div class="level-title">Best Sellers</div>
-            <div class="products-grid">
-              <div
-                v-for="product in bestsellerProducts"
-                :key="product.id"
-                class="product-card"
-              >
-                <NuxtLink :to="`/product/${product.id}`" class="product-link">
-                  <div class="product-image">
-                    <img
-                      :src="`/assets/${product.image}`"
-                      :alt="product.name"
-                    />
-                  </div>
-                  <div class="product-name">{{ product.name }}</div>
-                  <div class="product-price">${{ product.price }}</div>
-                </NuxtLink>
+            <!-- Level 2 -->
+            <div class="catalog-level">
+              <div class="level-title">Popular Brands</div>
+              <div class="products-grid">
+                <div
+                  v-for="product in popularProducts"
+                  :key="product.id"
+                  class="product-card"
+                >
+                  <NuxtLink :to="`/product/${product.id}`" class="product-link">
+                    <div class="product-image">
+                      <img :src="product.small_image" :alt="product.name" />
+                    </div>
+                    <div class="product-name">{{ product.name }}</div>
+                    <div class="product-price">${{ product.price }}</div>
+                  </NuxtLink>
+                </div>
               </div>
             </div>
-          </div>
+
+            <!-- Level 3 -->
+            <div class="catalog-level">
+              <div class="level-title">Best Sellers</div>
+              <div class="products-grid">
+                <div
+                  v-for="product in bestsellerProducts"
+                  :key="product.id"
+                  class="product-card"
+                >
+                  <NuxtLink :to="`/product/${product.id}`" class="product-link">
+                    <div class="product-image">
+                      <img :src="product.small_image" :alt="product.name" />
+                    </div>
+                    <div class="product-name">{{ product.name }}</div>
+                    <div class="product-price">${{ product.price }}</div>
+                  </NuxtLink>
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
       </div>
     </main>
@@ -152,68 +147,18 @@ const auth = useAuth();
 const user = computed(() => auth.user.value);
 const searchQuery = ref("");
 
-const premiumProducts = ref([
-  {
-    id: 1,
-    name: "Nike Air Max 270",
-    price: 150,
-    image: "product/1/main.png",
-  },
-  {
-    id: 2,
-    name: "Adidas Ultraboost 22",
-    price: 180,
-    image: "product/2/main.png",
-  },
-  {
-    id: 3,
-    name: "New Balance 990v5",
-    price: 175,
-    image: "product/3/main.png",
-  },
-]);
+const { data: products, pending: isLoading } = useFetch("/api/products", {
+  immediate: true,
+});
 
-const popularProducts = ref([
-  {
-    id: 4,
-    name: "Nike LeBron 19",
-    price: 200,
-    image: "product/4/main.png",
-  },
-  {
-    id: 5,
-    name: "Jordan XXXVI",
-    price: 185,
-    image: "product/5/main.png",
-  },
-  {
-    id: 6,
-    name: "Under Armour Curry 9",
-    price: 160,
-    image: "product/6/main.png",
-  },
-]);
+const allProducts = computed(() => {
+  if (!products.value) return [];
+  return Array.isArray(products.value) ? products.value : [];
+});
 
-const bestsellerProducts = ref([
-  {
-    id: 7,
-    name: "Adidas Stan Smith",
-    price: 85,
-    image: "product/7/main.png",
-  },
-  {
-    id: 8,
-    name: "Nike Air Force 1",
-    price: 100,
-    image: "product/8/main.png",
-  },
-  {
-    id: 9,
-    name: "Vans Old Skool",
-    price: 60,
-    image: "product/9/main.png",
-  },
-]);
+const premiumProducts = computed(() => allProducts.value.slice(0, 3));
+const popularProducts = computed(() => allProducts.value.slice(3, 6));
+const bestsellerProducts = computed(() => allProducts.value.slice(6, 9));
 
 onMounted(async () => {
   await auth.fetchMe();
@@ -446,6 +391,13 @@ onMounted(async () => {
   color: #000;
   display: inline-block;
   width: 100%;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: #999;
 }
 
 /* Mobile */

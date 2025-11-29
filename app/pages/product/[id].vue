@@ -61,7 +61,11 @@
         <!-- Top Right - Product Info -->
         <div class="model-info">
           <h1 class="model-name">{{ product.name }}</h1>
-          <div class="model-available">Model is available</div>
+          <div
+            :class="['model-available', { unavailable: !product.availability }]"
+          >
+            {{ product.availability ? "Model is available" : "Out of stock" }}
+          </div>
           <div class="model-price">${{ product.price }}</div>
 
           <div class="size-selection">
@@ -138,6 +142,7 @@
 import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
 import { useAuth } from "~~/composables/useAuth";
+import type { Product } from "~~/server/utils/types";
 
 const route = useRoute();
 const auth = useAuth();
@@ -147,13 +152,22 @@ const productId = computed(() => route.params.id as string);
 const selectedSize = ref(42);
 const deliveryMethod = ref("store");
 
-const sizes = [39, 40, 41, 42, 43, 44, 45];
+const { data: productData } = await useFetch(
+  () => `/api/products/${productId.value}`,
+);
+const product = computed(
+  () =>
+    (productData.value as any) || {
+      name: "",
+      price: 0,
+      sizes: [],
+      availability: false,
+    },
+);
 
-const product = ref({
-  name: "Nike Air Max 270",
-  price: 150,
-  brand: "Nike",
-});
+const sizes = computed(
+  () => product.value.sizes || [39, 40, 41, 42, 43, 44, 45],
+);
 
 function addToCart() {
   alert(`Added ${product.value.name} (Size ${selectedSize.value}) to cart!`);
@@ -348,6 +362,10 @@ onMounted(async () => {
   font-size: 18px;
   color: #4caf50;
   margin-bottom: 20px;
+}
+
+.model-available.unavailable {
+  color: #d32f2f;
 }
 
 .model-price {
