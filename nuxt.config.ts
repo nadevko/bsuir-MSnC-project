@@ -12,4 +12,8 @@ export default defineNuxtConfig({
       allowedHosts: ["show.nadevko.cc"],
     },
   },
+  typescript: {
+    typeCheck: true,
+    strict: true,
+  },
 });

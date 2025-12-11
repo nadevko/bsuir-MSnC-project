@@ -1,7 +1,8 @@
 import { readBody } from "h3";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import db, { type User } from "../utils/db";
+import db from "../utils/db";
+import type { User } from "../utils/types";
 import { validateRegisterForm, ValidationError } from "../utils/validation";
 import { signToken, setTokenCookie } from "../utils/auth";
 import { handleValidationError, sendErrorResponse } from "../utils/errors";

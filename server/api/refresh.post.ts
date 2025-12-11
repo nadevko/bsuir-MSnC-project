@@ -1,6 +1,7 @@
 import { getCookie } from "h3";
 import jwt from "jsonwebtoken";
-import db, { type User } from "../utils/db";
+import db from "../utils/db";
+import type { User } from "../utils/types";
 import {
   getJwtConfig,
   signToken,

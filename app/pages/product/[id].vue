@@ -1,53 +1,7 @@
 <template>
   <div>
-    <!-- HEADER -->
-    <header class="header">
-      <div class="header-left">
-        <button class="burger" aria-label="menu">☰</button>
-      </div>
-
-      <!-- Centered logo -->
-      <div class="logo-center">
-        <NuxtLink to="/" class="logo-link">
-          <img
-            src="/assets/logo.png"
-            alt="Ezzy Step"
-            class="logo logo-desktop"
-          />
-          <img
-            src="/assets/logo.png"
-            alt="Ezzy Step"
-            class="logo logo-mobile"
-          />
-        </NuxtLink>
-      </div>
-
-      <!-- Desktop right: search + join + log in (visible on desktop) -->
-      <div class="header-right">
-        <div class="search-wrap">
-          <input type="text" class="search-input" placeholder="Search" />
-        </div>
-        <NuxtLink v-if="!user" to="/register" class="btn join"
-          >JOIN NOW</NuxtLink
-        >
-        <NuxtLink v-if="!user" to="/login" class="btn outline">LOG IN</NuxtLink>
-        <NuxtLink v-if="user" to="/profile" class="btn outline"
-          >PROFILE</NuxtLink
-        >
-      </div>
-
-      <!-- Mobile icons (hidden on desktop, visible on mobile) -->
-      <div class="mobile-icons" aria-hidden="true">
-        <button class="icon-btn" aria-label="notifications">
-          <img src="/assets/bell.png" alt="" />
-        </button>
-        <button class="icon-btn" aria-label="search">
-          <img src="/assets/search.png" alt="" />
-        </button>
-      </div>
-    </header>
-
     <!-- Model Content -->
+    <!-- Хедера здесь больше нет, он придет из layouts/default.vue -->
     <main>
       <div class="model-container">
         <!-- Top Left - Product Image with Brand -->
@@ -137,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useAuth } from "~~/composables/useAuth";
 import { useCsrfToken } from "~~/composables/useCsrfToken";
@@ -207,12 +161,6 @@ async function buyNow() {
   }
 }
 
-function orderNow() {
-  alert(
-    `Ordering ${product.value.name} via ${deliveryMethod.value === "store" ? "store pickup" : "home delivery"}`,
-  );
-}
-
 function goBack() {
   window.history.back();
 }
@@ -229,123 +177,9 @@ onMounted(async () => {
   padding: 0;
 }
 
-/* Header */
-.header {
-  width: 92%;
-  max-width: 1400px;
-  margin: 18px auto;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 18px;
-  border-radius: 60px;
-  background: #fff;
-  border: 2px solid #3a3a3a;
-  justify-content: space-between;
-  position: relative;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.burger {
-  font-size: 26px;
-  line-height: 1;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: #111;
-  padding: 8px;
-}
-
-.logo-center {
-  position: absolute;
-  left: 45%;
-  transform: translateX(-50%);
-}
-
-.logo {
-  height: 60px;
-  width: auto;
-  display: block;
-  object-fit: contain;
-}
-
-.logo-mobile {
-  display: none;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-  justify-content: flex-end;
-}
-
-.search-wrap {
-  display: flex;
-  align-items: center;
-}
-
-.search-input {
-  height: 40px;
-  padding: 8px 14px;
-  border-radius: 22px;
-  border: 1px solid #999;
-  min-width: 220px;
-  font-size: 15px;
-}
-
-.btn {
-  display: inline-block;
-  text-decoration: none;
-  padding: 8px 18px;
-  border-radius: 22px;
-  font-weight: 600;
-  font-size: 14px;
-  border: none;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.btn.join {
-  background: #000;
-  color: #fff;
-}
-
-.btn.outline {
-  background: transparent;
-  color: #000;
-  border: 1px solid #000;
-}
-
-.btn:hover {
-  opacity: 0.8;
-}
-
-.mobile-icons {
-  display: none;
-  gap: 12px;
-  align-items: center;
-}
-
-.icon-btn {
-  background: transparent;
-  border: none;
-  padding: 6px;
-  cursor: pointer;
-}
-
-.icon-btn img {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-}
+/* 
+   Стили Header удалены, так как они теперь в AppHeader.vue 
+*/
 
 /* Model Container */
 .model-container {
@@ -584,60 +418,6 @@ onMounted(async () => {
 
 /* Mobile */
 @media (max-width: 768px) {
-  .header {
-    width: 100%;
-    margin: 12px 0 0 0;
-    border-radius: 60px;
-    padding: 12px 18px;
-    background: #3a3a3a;
-    border: 2px solid #3a3a3a;
-    justify-content: flex-start;
-  }
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: initial;
-  }
-
-  .burger {
-    color: #fff;
-  }
-
-  .logo-center {
-    position: static;
-    transform: none;
-    margin: 0 auto;
-    flex: 1;
-    text-align: center;
-  }
-
-  .logo-desktop {
-    display: none;
-  }
-
-  .logo-mobile {
-    display: block;
-    height: 38px;
-  }
-
-  .mobile-icons {
-    display: flex;
-    margin-left: auto;
-    flex: initial;
-  }
-
-  .mobile-icons img {
-    filter: brightness(0) invert(1);
-    width: 20px;
-    height: 20px;
-  }
-
-  .header-right {
-    display: none;
-  }
-
   .model-container {
     width: 95%;
     grid-template-columns: 1fr;

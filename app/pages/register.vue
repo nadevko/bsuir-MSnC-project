@@ -116,8 +116,10 @@
 import { reactive } from "vue";
 import { useAuth } from "~~/composables/useAuth";
 
+// ОТКЛЮЧАЕМ Layout по умолчанию
 definePageMeta({
   middleware: "guest",
+  layout: false,
 });
 
 const auth = useAuth();
@@ -145,6 +147,7 @@ async function onRegister() {
 </script>
 
 <style scoped>
+/* Стили остаются без изменений, так как хедер здесь уникальный */
 * {
   box-sizing: border-box;
   margin: 0;

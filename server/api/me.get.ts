@@ -1,4 +1,5 @@
-import db, { type User } from "../utils/db";
+import db from "../utils/db";
+import type { User } from "../utils/types";
 import { getUserIdFromToken } from "../utils/auth";
 
 export default defineEventHandler((event) => {

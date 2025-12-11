@@ -176,4 +176,3 @@ if (!globalWithCleanup.__sessionsCleanupInterval) {
 }
 
 export default db;
-export type { User, Session };
