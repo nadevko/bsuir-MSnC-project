@@ -1,8 +1,8 @@
 import db from "../utils/db";
 import { getUserIdFromToken } from "../utils/auth";
 
-export default defineEventHandler((event) => {
-  const userId = getUserIdFromToken(event);
+export default defineEventHandler(async (event) => {
+  const userId = await getUserIdFromToken(event);
 
   if (!userId) {
     throw createError({
@@ -11,7 +11,7 @@ export default defineEventHandler((event) => {
     });
   }
 
-  db.prepare("DELETE FROM carts WHERE user_id = ?").run(userId);
+  await db.prepare("DELETE FROM carts WHERE user_id = ?").run(userId);
 
   return { ok: true };
 });

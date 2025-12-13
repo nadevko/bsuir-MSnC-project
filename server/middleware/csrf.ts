@@ -5,7 +5,6 @@ export default defineEventHandler((event) => {
   const method = event.node.req.method || "";
   const url = event.node.req.url || "";
 
-  // Для GET запросов генерируем CSRF токен если его нет
   if (method === "GET") {
     const existingToken = getCookie(event, "csrf-token");
     if (!existingToken) {
@@ -15,12 +14,10 @@ export default defineEventHandler((event) => {
     return;
   }
 
-  // Не проверяем CSRF для refresh endpoint
   if (url === "/api/refresh") {
     return;
   }
 
-  // Для POST, PUT, DELETE проверяем CSRF
   if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
     const cookieToken = getCookie(event, "csrf-token");
     const headerToken = getHeader(event, "x-csrf-token");
@@ -43,7 +40,6 @@ export default defineEventHandler((event) => {
       });
     }
 
-    // После успешной валидации генерируем новый токен
     const newToken = generateCsrfToken();
     setCsrfCookie(event, newToken);
   }

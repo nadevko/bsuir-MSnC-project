@@ -27,9 +27,9 @@ export interface Product {
   name: string;
   ordered_amount: number;
   price: number;
-  sizes: string; // JSON stringified array
+  sizes: string;
   amount: number;
-  availability?: boolean; // computed
+  availability?: boolean;
 }
 
 export interface Cart {
@@ -46,4 +46,15 @@ export class ApiError extends Error {
   ) {
     super(statusMessage);
   }
+}
+
+export interface Statement {
+  run: (...params: any[]) => Promise<any>;
+  get: (...params: any[]) => Promise<any | undefined>;
+  all: (...params: any[]) => Promise<any[]>;
+}
+
+export interface DbAdapter {
+  prepare: (sql: string) => Statement;
+  pragma?: (pragma: string) => void | Promise<void>;
 }

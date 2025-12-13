@@ -1,21 +1,21 @@
 import db from "../utils/db";
 import type { Product } from "../utils/types";
 
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   const searchTerm = ((query.q as string) || "").toLowerCase().trim();
 
   let sql = "SELECT * FROM products";
-  let params: any[] = [];
+  const params: any[] = [];
 
   if (searchTerm) {
     sql += " WHERE LOWER(name) LIKE ?";
-    params = [`%${searchTerm}%`];
+    params.push(`%${searchTerm}%`);
   }
 
   sql += " ORDER BY id ASC";
 
-  const products = db.prepare(sql).all(...params) as Product[];
+  const products = (await db.prepare(sql).all(...params)) as Product[];
 
   return products.map((product) => ({
     ...product,

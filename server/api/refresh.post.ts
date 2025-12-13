@@ -36,9 +36,9 @@ export default defineEventHandler(async (event) => {
     const userId = payload.sub;
     const jti = payload.jti;
 
-    const session = db
+    const session = (await db
       .prepare("SELECT invalidatedAt FROM sessions WHERE jti = ?")
-      .get(jti) as { invalidatedAt: string | null } | undefined;
+      .get(jti)) as { invalidatedAt: string | null } | undefined;
 
     if (!session || session.invalidatedAt) {
       throw createError({
@@ -47,9 +47,9 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    const user = db
+    const user = (await db
       .prepare("SELECT id, username, email FROM users WHERE id = ?")
-      .get(userId) as User | undefined;
+      .get(userId)) as User | undefined;
 
     if (!user) {
       throw createError({
@@ -58,11 +58,13 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    db.prepare(
-      "UPDATE sessions SET invalidatedAt = datetime('now') WHERE jti = ?",
-    ).run(jti);
+    await db
+      .prepare(
+        "UPDATE sessions SET invalidatedAt = datetime('now') WHERE jti = ?",
+      )
+      .run(jti);
 
-    const { token: newToken } = signToken(user);
+    const { token: newToken } = await signToken(user);
     setTokenCookie(event, newToken);
 
     const csrfToken = generateCsrfToken();

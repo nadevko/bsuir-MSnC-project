@@ -137,12 +137,12 @@ async function buyNow() {
 
   try {
     const csrf = useCsrfToken();
-    // Clear cart
+
     await $fetch("/api/cart/clear", {
       method: "POST",
       headers: csrf.getHeader(),
     });
-    // Add product
+
     await $fetch("/api/cart", {
       method: "POST",
       body: {
@@ -152,7 +152,7 @@ async function buyNow() {
       },
       headers: csrf.getHeader(),
     });
-    // Redirect to profile
+
     await navigateTo("/profile");
   } catch (error) {
     console.error("Failed to buy now:", error);

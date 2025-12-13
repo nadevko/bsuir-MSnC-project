@@ -114,13 +114,11 @@
 import { reactive } from "vue";
 import { useAuth } from "~~/composables/useAuth";
 
-// ОТКЛЮЧАЕМ Layout по умолчанию
 definePageMeta({
   middleware: "guest",
   layout: false,
 });
 
-// Деструктурируем значения для использования в шаблоне как ref верхнего уровня
 const { register, loading, errors, clearErrors } = useAuth();
 const form = reactive({
   username: "",

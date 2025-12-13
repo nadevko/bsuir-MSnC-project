@@ -3,7 +3,7 @@ import db from "../utils/db";
 import { getUserIdFromToken } from "../utils/auth";
 
 export default defineEventHandler(async (event) => {
-  const userId = getUserIdFromToken(event);
+  const userId = await getUserIdFromToken(event);
 
   if (!userId) {
     throw createError({
@@ -29,9 +29,11 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  db.prepare(
-    "UPDATE carts SET amount = ? WHERE user_id = ? AND product_id = ? AND size = ?",
-  ).run(amount, userId, product_id, size);
+  await db
+    .prepare(
+      "UPDATE carts SET amount = ? WHERE user_id = ? AND product_id = ? AND size = ?",
+    )
+    .run(amount, userId, product_id, size);
 
   return { ok: true };
 });

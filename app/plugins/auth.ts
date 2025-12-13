@@ -1,15 +1,14 @@
 import { useAuth } from "~~/composables/useAuth";
 import { useTokenRefresh } from "~~/composables/useTokenRefresh";
 
-export default defineNuxtPlugin(() => {
-  // Инициализируем пользователя СИНХРОННО на клиенте
-  if (import.meta.client) {
-    const auth = useAuth();
+export default defineNuxtPlugin(async () => {
+  const auth = useAuth();
 
-    // Это выполнится ДО первого рендера
-    auth.initFromToken();
+  try {
+    await auth.initFromToken();
+  } catch (e) {}
 
-    // Запускаем token refresh
+  if (process.client) {
     useTokenRefresh(auth.user);
   }
 });

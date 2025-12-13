@@ -1,6 +1,6 @@
 import { ref, watch } from "vue";
 import type { Ref } from "vue";
-import type { User } from "./useAuth";
+import type { User } from "../server/utils/types";
 
 export function useTokenRefresh(user: Ref<User | null>) {
   if (!import.meta.client) return { isRefreshing: ref(false) };

@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     const username = body.username.trim();
     const password = body.password;
 
-    const existing = db
+    const existing = await db
       .prepare("SELECT id FROM users WHERE email = ?")
       .get(email);
 
@@ -39,19 +39,21 @@ export default defineEventHandler(async (event) => {
       createdAt,
     };
 
-    db.prepare(
-      `INSERT INTO users (id, username, email, passwordHash, birthdate, createdAt)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-    ).run(
-      user.id,
-      user.username,
-      user.email,
-      user.passwordHash,
-      user.birthdate,
-      user.createdAt,
-    );
+    await db
+      .prepare(
+        `INSERT INTO users (id, username, email, passwordHash, birthdate, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        user.id,
+        user.username,
+        user.email,
+        user.passwordHash,
+        user.birthdate,
+        user.createdAt,
+      );
 
-    const { token } = signToken(user);
+    const { token } = await signToken(user);
     setTokenCookie(event, token);
 
     setResponseStatus(event, 201);

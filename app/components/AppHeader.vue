@@ -158,12 +158,11 @@ const { data: cartData, refresh: refreshCart } = await useFetch<CartItem[]>(
   {
     key: "header-cart",
     watch: [user],
-    immediate: false, // Не делаем запрос сразу
-    server: false, // Только на клиенте
+    immediate: false,
+    server: false,
   },
 );
 
-// Загружаем корзину только если пользователь залогинен
 watch(
   user,
   (newUser) => {

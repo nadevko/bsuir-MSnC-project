@@ -16,9 +16,9 @@ export default defineEventHandler(async (event) => {
     const password = body.password;
     const rememberMe = body.rememberMe ?? false;
 
-    const user = db
+    const user = (await db
       .prepare("SELECT * FROM users WHERE email = ?")
-      .get(email) as User | undefined;
+      .get(email)) as User | undefined;
 
     if (!user) {
       throw new ValidationError("email", "Invalid email or password");
@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
       throw new ValidationError("password", "Invalid email or password");
     }
 
-    const { token } = signToken(user, rememberMe);
+    const { token } = await signToken(user, rememberMe);
     setTokenCookie(event, token);
 
     return {

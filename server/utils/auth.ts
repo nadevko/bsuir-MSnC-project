@@ -28,7 +28,11 @@ export function generateCsrfToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
-export function signToken(
+/* =======================
+   TOKEN SIGNING
+   ======================= */
+
+export async function signToken(
   user: Pick<User, "id" | "username" | "email">,
   rememberMe: boolean = false,
 ) {
@@ -37,7 +41,6 @@ export function signToken(
 
   const tokenExpiresIn = rememberMe ? expiresInSeconds * 7 : expiresInSeconds;
 
-  // Включаем email в токен, чтобы его можно было декодировать на клиенте
   const token = jwt.sign(
     { sub: user.id, username: user.username, email: user.email, jti },
     secret,
@@ -46,12 +49,16 @@ export function signToken(
 
   const expiresAt = new Date(Date.now() + tokenExpiresIn * 1000);
 
-  db.prepare(
-    "INSERT INTO sessions (jti, userId, expiresAt) VALUES (?, ?, ?)",
-  ).run(jti, user.id, expiresAt.toISOString());
+  await db
+    .prepare("INSERT INTO sessions (jti, userId, expiresAt) VALUES (?, ?, ?)")
+    .run(jti, user.id, expiresAt.toISOString());
 
   return { token, expiresAt };
 }
+
+/* =======================
+   COOKIES
+   ======================= */
 
 export function setTokenCookie(event: H3Event, token: string) {
   const { expiresInSeconds } = getJwtConfig();
@@ -75,7 +82,13 @@ export function setCsrfCookie(event: H3Event, token: string) {
   });
 }
 
-export function getUserIdFromToken(event: H3Event): string | null {
+/* =======================
+   AUTH HELPERS
+   ======================= */
+
+export async function getUserIdFromToken(
+  event: H3Event,
+): Promise<string | null> {
   const token = getCookie(event, "token");
   if (!token) return null;
 
@@ -83,21 +96,20 @@ export function getUserIdFromToken(event: H3Event): string | null {
 
   try {
     const payload = jwt.verify(token, secret) as TokenPayload;
-
     if (!payload.jti) return null;
 
-    const session = db
+    const session = (await db
       .prepare(
         "SELECT userId, expiresAt, invalidatedAt FROM sessions WHERE jti = ?",
       )
-      .get(payload.jti) as
+      .get(payload.jti)) as
       | Pick<Session, "userId" | "expiresAt" | "invalidatedAt">
       | undefined;
 
     if (!session || session.invalidatedAt) return null;
 
     if (new Date(session.expiresAt).getTime() < Date.now()) {
-      db.prepare("DELETE FROM sessions WHERE jti = ?").run(payload.jti);
+      await db.prepare("DELETE FROM sessions WHERE jti = ?").run(payload.jti);
       return null;
     }
 
@@ -107,7 +119,7 @@ export function getUserIdFromToken(event: H3Event): string | null {
   }
 }
 
-export function invalidateToken(event: H3Event): boolean {
+export async function invalidateToken(event: H3Event): Promise<boolean> {
   const token = getCookie(event, "token");
   if (!token) return false;
 
@@ -115,10 +127,13 @@ export function invalidateToken(event: H3Event): boolean {
 
   try {
     const payload = jwt.verify(token, secret) as TokenPayload;
+
     if (payload.jti) {
-      db.prepare(
-        "UPDATE sessions SET invalidatedAt = datetime('now') WHERE jti = ?",
-      ).run(payload.jti);
+      await db
+        .prepare(
+          "UPDATE sessions SET invalidatedAt = datetime('now') WHERE jti = ?",
+        )
+        .run(payload.jti);
     }
   } catch {
     return false;
@@ -126,6 +141,10 @@ export function invalidateToken(event: H3Event): boolean {
 
   return true;
 }
+
+/* =======================
+   CLEAR COOKIES
+   ======================= */
 
 export function clearTokenCookie(event: H3Event) {
   setCookie(event, "token", "", {

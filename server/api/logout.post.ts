@@ -5,9 +5,9 @@ import {
   setCsrfCookie,
 } from "../utils/auth";
 
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   try {
-    invalidateToken(event);
+    await invalidateToken(event);
   } catch {}
 
   clearTokenCookie(event);

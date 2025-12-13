@@ -1,6 +1,6 @@
 import db from "../../utils/db";
 
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   try {
     const id = getRouterParam(event, "id");
 
@@ -11,9 +11,9 @@ export default defineEventHandler((event) => {
       });
     }
 
-    const product = db
+    const product = await db
       .prepare("SELECT * FROM products WHERE id = ?")
-      .get(Number(id)) as any;
+      .get(Number(id));
 
     if (!product) {
       throw createError({
