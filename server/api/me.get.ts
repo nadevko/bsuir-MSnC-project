@@ -1,11 +1,10 @@
-// server/api/me.get.ts
 import db from "../utils/db";
 import type { User } from "../utils/types";
 import { getUserIdFromToken } from "../utils/auth";
 import { defineEventHandler, createError } from "h3";
 
 export default defineEventHandler(async (event) => {
-    const userId = await getUserIdFromToken(event); // важно: await
+    const userId = await getUserIdFromToken(event);
     if (!userId) {
         throw createError({
             statusCode: 401,
