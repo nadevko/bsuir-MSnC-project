@@ -7,3 +7,10 @@ export interface CartItem {
   price?: number;
   small_image?: string;
 }
+
+export interface AuthUser {
+  id: string;
+  username: string;
+  email: string;
+}
+

@@ -1,81 +1,71 @@
-import { ref, watch } from "vue";
-import type { Ref } from "vue";
-import type { User } from "../server/utils/types";
+// composables/useTokenRefresh.ts
+import { watch, onBeforeUnmount } from "vue";
 
-export function useTokenRefresh(user: Ref<User | null>) {
-  if (!import.meta.client) return { isRefreshing: ref(false) };
+/**
+ * Safe token refresh:
+ * - не делает немедленный refresh при первом появлении user (чтобы не создавать цикл)
+ * - запускает периодический refresh 1 раз
+ */
+export function useTokenRefresh(userState: any, opts?: { intervalMs?: number }) {
+  const intervalMs = opts?.intervalMs ?? 5 * 60 * 1000;
+  let timer: ReturnType<typeof setInterval> | null = null;
+  let initialSeen = false;
 
-  const isRefreshing = ref(false);
-  let refreshInterval: ReturnType<typeof setInterval> | null = null;
-
-  function getTokenExpiry(): number | null {
+  async function doRefresh() {
     try {
-      const match = document.cookie.match(/token=([^;]+)/);
-      if (!match || !match[1]) return null;
-
-      const token = match[1];
-      const parts = token.split(".");
-      if (parts.length !== 3 || !parts[1]) return null;
-
-      const payload = JSON.parse(atob(parts[1])) as {
-        exp?: number;
-      };
-
-      return payload.exp ? payload.exp * 1000 : null;
-    } catch {
-      return null;
+      await $fetch("/api/refresh", { method: "POST" });
+    } catch (err) {
+      console.warn("Token refresh failed:", err);
     }
   }
 
-  async function refreshToken() {
-    if (isRefreshing.value || !user.value) return;
+  const stopWatch = watch(
+    userState,
+    (newUser) => {
+      if (!newUser) {
+        if (timer) {
+          clearInterval(timer);
+          timer = null;
+        }
+        initialSeen = false;
+        return;
+      }
 
-    isRefreshing.value = true;
+      // При первом появлении user — запускаем таймер, но НЕ делаем doRefresh() сразу
+      if (!initialSeen) {
+        initialSeen = true;
+        if (!timer) {
+          timer = setInterval(() => {
+            void doRefresh();
+          }, intervalMs);
+        }
+        return;
+      }
 
-    try {
-      const response = await $fetch<User>("/api/refresh", {
-        method: "POST",
-      });
-      user.value = response;
-    } catch (e) {
-      user.value = null;
-    } finally {
-      isRefreshing.value = false;
-      scheduleNextRefresh();
-    }
-  }
-
-  function scheduleNextRefresh() {
-    if (refreshInterval) clearInterval(refreshInterval);
-    if (!user.value) return;
-
-    const expiry = getTokenExpiry();
-    if (!expiry) return;
-
-    const refreshIn = expiry - Date.now() - 5 * 60 * 1000;
-
-    if (refreshIn <= 0) {
-      refreshToken();
-      return;
-    }
-
-    refreshInterval = setInterval(() => {
-      refreshToken();
-    }, refreshIn);
-  }
-
-  watch(
-    user,
-    () => {
-      scheduleNextRefresh();
+      // Для последующих срабатываний (после логина) тоже включаем таймер если не включён
+      if (!timer) {
+        timer = setInterval(() => {
+          void doRefresh();
+        }, intervalMs);
+      }
     },
-    { deep: true },
+    { immediate: false },
   );
 
+  onBeforeUnmount(() => {
+    if (timer) clearInterval(timer);
+    stopWatch();
+  });
+
   return {
-    isRefreshing,
-    cleanup: () => {
-      if (refreshInterval) clearInterval(refreshInterval);
+    refreshNow: doRefresh,
+    stop: () => {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
     },
   };
 }
+
+export default useTokenRefresh;

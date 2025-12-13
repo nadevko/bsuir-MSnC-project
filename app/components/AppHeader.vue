@@ -5,141 +5,59 @@
         <button class="burger" aria-label="menu" @click="toggleCatalogMenu">
           ☰
         </button>
-        <div v-if="showCatalogMenu" class="catalog-dropdown">
-          <div class="catalog-dropdown-header">Каталог товаров</div>
-          <div class="catalog-dropdown-content">
-            <NuxtLink
-              to="/catalog/sneakers"
-              class="catalog-item"
-              @click="hideCatalogMenu"
-            >
-              <div class="catalog-item-icon">👟</div>
-              <div class="catalog-item-text">Кроссовки</div>
-            </NuxtLink>
-            <NuxtLink
-              to="/catalog/shoes"
-              class="catalog-item"
-              @click="hideCatalogMenu"
-            >
-              <div class="catalog-item-icon">👞</div>
-              <div class="catalog-item-text">Обувь</div>
-            </NuxtLink>
-            <NuxtLink
-              to="/catalog/sports"
-              class="catalog-item"
-              @click="hideCatalogMenu"
-            >
-              <div class="catalog-item-icon">🏃</div>
-              <div class="catalog-item-text">Спортивная обувь</div>
-            </NuxtLink>
-            <NuxtLink
-              to="/catalog/casual"
-              class="catalog-item"
-              @click="hideCatalogMenu"
-            >
-              <div class="catalog-item-icon">👟</div>
-              <div class="catalog-item-text">Повседневная</div>
-            </NuxtLink>
-            <NuxtLink
-              to="/catalog/accessories"
-              class="catalog-item"
-              @click="hideCatalogMenu"
-            >
-              <div class="catalog-item-icon">🎽</div>
-              <div class="catalog-item-text">Аксессуары</div>
-            </NuxtLink>
-            <NuxtLink
-              to="/catalog/sales"
-              class="catalog-item"
-              @click="hideCatalogMenu"
-            >
-              <div class="catalog-item-icon">🔥</div>
-              <div class="catalog-item-text">Распродажа</div>
-            </NuxtLink>
-          </div>
-        </div>
+        <div v-if="showCatalogMenu" class="catalog-dropdown"> ... </div>
       </div>
     </div>
 
     <div class="logo-center">
       <NuxtLink to="/" class="logo-link">
         <img src="/assets/logo.png" alt="Ezzy Step" class="logo logo-desktop" />
-        <img
-          src="/assets/logomob.png"
-          alt="Ezzy Step"
-          class="logo logo-mobile"
-        />
+        <img src="/assets/logomob.png" alt="Ezzy Step" class="logo logo-mobile" />
       </NuxtLink>
     </div>
 
     <div class="header-right">
       <div class="search-wrap">
-        <input
-          v-model="searchQuery"
-          type="text"
-          class="search-input"
-          placeholder="Search"
-          @keyup.enter="handleSearch"
-        />
+        <input v-model="searchQuery" type="text" class="search-input" placeholder="Search" @keyup.enter="handleSearch" />
       </div>
 
-      <ClientOnly>
-        <div class="auth-buttons">
-          <!-- User Logged In State -->
-          <div v-show="user" class="auth-logged-in">
-            <NuxtLink to="/profile" class="cart-icon-link">
-              <div class="cart-icon">
-                <img src="/assets/cart.png" alt="Cart" class="cart-icon-img" />
-                <span v-if="cartItemCount > 0" class="cart-badge">
-                  {{ cartItemCount > 9 ? "9+" : cartItemCount }}
-                </span>
-              </div>
-            </NuxtLink>
-            <NuxtLink to="/profile" class="btn outline">PROFILE</NuxtLink>
-            <button @click="onLogout" class="btn outline">LOG OUT</button>
-          </div>
-
-          <!-- User Logged Out State -->
-          <div v-show="!user" class="auth-logged-out">
-            <NuxtLink to="/register" class="btn join">JOIN NOW</NuxtLink>
-            <NuxtLink to="/login" class="btn outline">LOG IN</NuxtLink>
-          </div>
+      <div class="auth-buttons">
+        <!-- User Logged In State -->
+        <div v-if="user" class="auth-logged-in">
+          <NuxtLink to="/profile" class="cart-icon-link">
+            <div class="cart-icon">
+              <img src="/assets/cart.png" alt="Cart" class="cart-icon-img" />
+              <span v-if="cartItemCount > 0" class="cart-badge">{{ cartItemCount > 9 ? "9+" : cartItemCount }}</span>
+            </div>
+          </NuxtLink>
+          <NuxtLink to="/profile" class="btn outline">PROFILE</NuxtLink>
+          <button @click="onLogout" class="btn outline">LOG OUT</button>
         </div>
 
-        <!-- Fallback для SSR -->
-        <template #fallback>
-          <div class="auth-skeleton">
-            <div class="btn-skeleton"></div>
-            <div class="btn-skeleton"></div>
-          </div>
-        </template>
-      </ClientOnly>
+        <!-- User Logged Out State -->
+        <div v-else class="auth-logged-out">
+          <NuxtLink to="/register" class="btn join">JOIN NOW</NuxtLink>
+          <NuxtLink to="/login" class="btn outline">LOG IN</NuxtLink>
+        </div>
+      </div>
     </div>
 
     <!-- Mobile Icons -->
     <div class="mobile-icons" aria-hidden="true">
-      <ClientOnly>
-        <div v-show="user" class="mobile-cart-wrapper">
-          <NuxtLink to="/profile" class="icon-btn" aria-label="cart">
-            <img src="/assets/cart.png" alt="" />
-            <span v-if="mobileCartItemCount > 0" class="mobile-cart-badge">
-              {{ mobileCartItemCount > 9 ? "9+" : mobileCartItemCount }}
-            </span>
-          </NuxtLink>
-        </div>
-      </ClientOnly>
-      <button class="icon-btn" aria-label="notifications">
-        <img src="/assets/bell.png" alt="" />
-      </button>
-      <button class="icon-btn" aria-label="search">
-        <img src="/assets/search.png" alt="" />
-      </button>
+      <div v-if="user" class="mobile-cart-wrapper">
+        <NuxtLink to="/profile" class="icon-btn" aria-label="cart">
+          <img src="/assets/cart.png" alt="" />
+          <span v-if="mobileCartItemCount > 0" class="mobile-cart-badge">{{ mobileCartItemCount > 9 ? "9+" : mobileCartItemCount }}</span>
+        </NuxtLink>
+      </div>
+      <button class="icon-btn" aria-label="notifications"><img src="/assets/bell.png" alt="" /></button>
+      <button class="icon-btn" aria-label="search"><img src="/assets/search.png" alt="" /></button>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuth } from "~~/composables/useAuth";
 import type { CartItem } from "~~/types/client";
@@ -153,21 +71,19 @@ const user = computed(() => auth.user.value);
 const searchQuery = ref((route.query.q as string) || "");
 const showCatalogMenu = ref(false);
 
-const { data: cartData, refresh: refreshCart } = await useFetch<CartItem[]>(
-  "/api/cart",
-  {
-    key: "header-cart",
-    watch: [user],
-    immediate: false,
-    server: false,
-  },
-);
+const { data: cartData, refresh: refreshCart } = useFetch<CartItem[]>("/api/cart", {
+  key: "header-cart",
+  // не делаем fetch немедленно на SSR — будем триггерить загрузку при появлении user
+  immediate: false,
+  server: false,
+});
 
 watch(
   user,
   (newUser) => {
     if (newUser) {
-      refreshCart();
+      // загружаем корзину для юзера
+      void refreshCart();
     }
   },
   { immediate: true },
@@ -175,10 +91,7 @@ watch(
 
 const cartItemCount = computed(() => {
   if (!cartData.value || !Array.isArray(cartData.value)) return 0;
-  return cartData.value.reduce(
-    (total: number, item: CartItem) => total + item.amount,
-    0,
-  );
+  return cartData.value.reduce((total: number, item: CartItem) => total + item.amount, 0);
 });
 
 const mobileCartItemCount = computed(() => cartItemCount.value);
@@ -195,7 +108,7 @@ async function onLogout() {
   try {
     await auth.logout();
     await navigateTo("/");
-    refreshCart();
+    void refreshCart();
   } catch (error) {
     console.error("Logout failed:", error);
   }

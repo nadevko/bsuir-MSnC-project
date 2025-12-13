@@ -1,5 +1,5 @@
 import { reactive, computed } from "vue";
-import type { User } from "../server/utils/types";
+import type { AuthUser as User } from "~~/types/client";
 
 export function useAuth() {
   const userState = useState<User | null>("auth_user", () => null);
@@ -38,7 +38,6 @@ export function useAuth() {
       }
     } catch (err: any) {
       userState.value = null;
-
       return null;
     } finally {
       loading.init = false;
@@ -58,18 +57,13 @@ export function useAuth() {
         method: "POST",
         body: payload,
       });
-
       userState.value = res as User;
       return userState.value;
     } catch (err: any) {
-      if (err?.data) {
-        if (typeof err.data === "object") {
-          Object.assign(errors, err.data);
-        } else {
-          errors.general = String(err.data || err.message || "Login failed");
-        }
+      if (err?.data && typeof err.data === "object") {
+        Object.assign(errors, err.data);
       } else {
-        errors.general = String(err?.message || "Login failed");
+        errors.general = String(err?.data || err?.message || "Login failed");
       }
       throw err;
     } finally {
@@ -94,16 +88,10 @@ export function useAuth() {
       userState.value = res as User;
       return userState.value;
     } catch (err: any) {
-      if (err?.data) {
-        if (typeof err.data === "object") {
-          Object.assign(errors, err.data);
-        } else {
-          errors.general = String(
-            err.data || err.message || "Registration failed",
-          );
-        }
+      if (err?.data && typeof err.data === "object") {
+        Object.assign(errors, err.data);
       } else {
-        errors.general = String(err?.message || "Registration failed");
+        errors.general = String(err?.data || err?.message || "Registration failed");
       }
       throw err;
     } finally {
@@ -122,7 +110,7 @@ export function useAuth() {
   }
 
   return {
-    user: user,
+    user,
     isAuthenticated,
     loading,
     errors,

@@ -1,3 +1,4 @@
+// app/plugins/auth.ts
 import { useAuth } from "~~/composables/useAuth";
 import { useTokenRefresh } from "~~/composables/useTokenRefresh";
 
@@ -6,9 +7,12 @@ export default defineNuxtPlugin(async () => {
 
   try {
     await auth.initFromToken();
-  } catch (e) {}
+  } catch (e) {
+  }
 
   if (process.client) {
-    useTokenRefresh(auth.user);
+    setTimeout(() => {
+      useTokenRefresh(auth.user, { intervalMs: 5 * 60 * 1000 });
+    }, 200);
   }
 });
