@@ -20,28 +20,39 @@ export function useAuth() {
 
   const user = computed(() => userState.value);
   const isAuthenticated = computed(() => !!userState.value);
+  let initPromise: Promise<User | null> | null = null;
 
   async function initFromToken() {
     if (userState.value) return userState.value;
 
+    if (!import.meta.client) return null;
+
+    if (initPromise) return initPromise;
+
     loading.init = true;
     clearErrors();
 
-    try {
-      const res = await $fetch("/api/refresh", { method: "POST" });
-      if (res && res.id) {
-        userState.value = res as User;
-        return userState.value;
-      } else {
+    initPromise = (async () => {
+      try {
+        const res = await $fetch("/api/refresh", { method: "POST" });
+
+        if (res && (res as any).id) {
+          userState.value = res as User;
+          return userState.value;
+        }
+
         userState.value = null;
         return null;
+      } catch (err: any) {
+        userState.value = null;
+        return null;
+      } finally {
+        loading.init = false;
+        initPromise = null;
       }
-    } catch (err: any) {
-      userState.value = null;
-      return null;
-    } finally {
-      loading.init = false;
-    }
+    })();
+
+    return initPromise;
   }
 
   async function login(payload: {
@@ -91,7 +102,9 @@ export function useAuth() {
       if (err?.data && typeof err.data === "object") {
         Object.assign(errors, err.data);
       } else {
-        errors.general = String(err?.data || err?.message || "Registration failed");
+        errors.general = String(
+          err?.data || err?.message || "Registration failed",
+        );
       }
       throw err;
     } finally {

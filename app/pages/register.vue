@@ -1,341 +1,89 @@
 <template>
-  <div>
-    <!-- Minimal HEADER with only logo -->
-    <header class="header">
-      <div class="logo-center">
-        <NuxtLink to="/" class="logo-link">
-          <img
-            src="/assets/logo.png"
-            alt="Ezzy Step"
-            class="logo logo-desktop"
-          />
-          <img
-            src="/assets/logo.png"
-            alt="Ezzy Step"
-            class="logo logo-mobile"
-          />
-        </NuxtLink>
-      </div>
+  <div class="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+    <header class="w-full py-6 flex justify-center">
+      <NuxtLink to="/" class="flex items-center">
+        <img src="/assets/logo.png" alt="Ezzy Step" class="h-12 object-contain" />
+      </NuxtLink>
     </header>
 
-    <!-- Registration Form -->
-    <main>
-      <div class="register-container">
-        <form class="register-form" @submit.prevent="onRegister">
-          <h1 class="form-title">Create Account</h1>
+    <main class="flex-grow flex items-center justify-center px-4">
+      <form @submit.prevent="onRegister" class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 w-full max-w-md space-y-6">
+        <h1 class="text-2xl font-bold text-center text-gray-900 dark:text-gray-100">Create Account</h1>
 
-          <div v-if="errors.general" class="error-message">
-            ❌ {{ errors.general }}
+        <div v-if="errors.general" class="bg-red-100 text-red-700 p-3 rounded-md text-sm">
+          ❌ {{ errors.general }}
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Username</label>
+            <input v-model="form.username" type="text" id="username" required :disabled="loading"
+                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 disabled:bg-gray-200 disabled:dark:bg-gray-600"/>
+            <p v-if="errors.username" class="text-red-600 text-sm mt-1">{{ errors.username }}</p>
           </div>
 
-          <div class="form-group">
-            <label for="username" class="form-label">Username</label>
-            <input
-              v-model="form.username"
-              type="text"
-              id="username"
-              class="form-input"
-              placeholder="Enter your username"
-              required
-              :disabled="loading.register"
-            />
-            <div v-if="errors.username" class="field-error">
-              {{ errors.username }}
-            </div>
+          <div>
+            <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Email</label>
+            <input v-model="form.email" type="email" id="email" required :disabled="loading"
+                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 disabled:bg-gray-200 disabled:dark:bg-gray-600"/>
+            <p v-if="errors.email" class="text-red-600 text-sm mt-1">{{ errors.email }}</p>
           </div>
 
-          <div class="form-group">
-            <label for="email" class="form-label">Email Address</label>
-            <input
-              v-model="form.email"
-              type="email"
-              id="email"
-              class="form-input"
-              placeholder="Enter your email"
-              required
-              :disabled="loading.register"
-            />
-            <div v-if="errors.email" class="field-error">
-              {{ errors.email }}
-            </div>
+          <div>
+            <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Password</label>
+            <input v-model="form.password" type="password" id="password" required :disabled="loading"
+                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 disabled:bg-gray-200 disabled:dark:bg-gray-600"/>
+            <p v-if="errors.password" class="text-red-600 text-sm mt-1">{{ errors.password }}</p>
           </div>
 
-          <div class="form-group">
-            <label for="password" class="form-label">Password</label>
-            <input
-              v-model="form.password"
-              type="password"
-              id="password"
-              class="form-input"
-              placeholder="Create a password (min 8 chars)"
-              required
-              :disabled="loading.register"
-            />
-            <div v-if="errors.password" class="field-error">
-              {{ errors.password }}
-            </div>
+          <div>
+            <label for="birthdate" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Birthdate</label>
+            <input v-model="form.birthdate" type="date" id="birthdate" required :disabled="loading"
+                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 disabled:bg-gray-200 disabled:dark:bg-gray-600"/>
+            <p v-if="errors.birthdate" class="text-red-600 text-sm mt-1">{{ errors.birthdate }}</p>
           </div>
+        </div>
 
-          <div class="form-group">
-            <label for="birthdate" class="form-label">Birthdate</label>
-            <input
-              v-model="form.birthdate"
-              type="date"
-              id="birthdate"
-              class="form-input"
-              required
-              :disabled="loading.register"
-            />
-            <div v-if="errors.birthdate" class="field-error">
-              {{ errors.birthdate }}
-            </div>
-          </div>
+        <button type="submit" :disabled="loading" class="w-full bg-black dark:bg-white text-white dark:text-black font-semibold py-2 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed">
+          {{ loading ? 'Creating Account...' : 'Create Account' }}
+        </button>
 
-          <button
-            type="submit"
-            class="form-submit"
-            :disabled="loading.register"
-          >
-            {{ loading.register ? "Creating Account..." : "Create Account" }}
-          </button>
-
-          <div class="form-footer">
-            <p>
-              Already have an account? <NuxtLink to="/login">Log in</NuxtLink>
-            </p>
-          </div>
-        </form>
-      </div>
+        <p class="text-center text-sm text-gray-600 dark:text-gray-300">
+          Already have an account?
+          <NuxtLink to="/login" class="font-medium hover:underline">Log in</NuxtLink>
+        </p>
+      </form>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive } from "vue";
-import { useAuth } from "~~/composables/useAuth";
+import { reactive, ref } from 'vue'
+import { useAuthStore } from '~~/stores/auth'
+import { useRouter } from 'vue-router'
 
-definePageMeta({
-  middleware: "guest",
-  layout: false,
-});
+const auth = useAuthStore()
+const router = useRouter()
 
-const { register, loading, errors, clearErrors } = useAuth();
-const form = reactive({
-  username: "",
-  email: "",
-  password: "",
-  birthdate: "",
-});
+const form = reactive({ username: '', email: '', password: '', birthdate: '' })
+const loading = ref(false)
+const errors = reactive<{ general?: string; username?: string; email?: string; password?: string; birthdate?: string }>({})
 
 async function onRegister() {
+  loading.value = true
   try {
-    clearErrors();
-    await register({
-      username: form.username,
-      email: form.email,
-      password: form.password,
-      birthdate: form.birthdate,
-    });
-    await navigateTo("/");
-  } catch (error) {
-    console.error("Registration failed:", error);
+    const user = await $fetch('/api/register', {
+      method: 'POST',
+      body: form,
+      credentials: 'include',
+    })
+    // после регистрации токен уже в HttpOnly куке
+    await auth.fetchUser() // подтягиваем user в стор
+    await router.push('/')
+  } catch (err: any) {
+    errors.general = err?.data?.message || 'Registration failed'
+  } finally {
+    loading.value = false
   }
 }
 </script>
-
-<style scoped>
-/* Стили остаются без изменений, так как хедер здесь уникальный */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: Arial, Helvetica, sans-serif;
-  color: #111;
-  background: #fff;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Header */
-.header {
-  width: 100%;
-  margin: 18px 0;
-  padding: 12px 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-}
-
-.logo-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.logo {
-  height: 60px;
-  width: auto;
-  display: block;
-  object-fit: contain;
-}
-
-.logo-mobile {
-  display: none;
-}
-
-.logo-link {
-  text-decoration: none;
-}
-
-/* Register form */
-.register-container {
-  width: 100%;
-  max-width: 500px;
-  margin: 40px auto;
-  padding: 0 20px;
-}
-
-.register-form {
-  background: #fff;
-  padding: 30px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.form-title {
-  font-size: 32px;
-  font-weight: bold;
-  margin-bottom: 30px;
-  text-align: center;
-}
-
-.error-message {
-  color: #d32f2f;
-  padding: 10px;
-  background: #ffebee;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  font-size: 14px;
-}
-
-.warning-message {
-  color: #f57c00;
-  padding: 10px;
-  background: #fff3e0;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  font-size: 14px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.form-input {
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 16px;
-  transition: border-color 0.3s;
-}
-
-.form-input:focus {
-  border-color: #3a3a3a;
-  outline: none;
-}
-
-.form-input:disabled {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
-}
-
-.field-error {
-  color: #d32f2f;
-  font-size: 13px;
-  margin-top: 5px;
-}
-
-.form-submit {
-  width: 100%;
-  padding: 14px;
-  background: #000;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.form-submit:hover:not(:disabled) {
-  background: #333;
-}
-
-.form-submit:disabled {
-  background: #999;
-  cursor: not-allowed;
-}
-
-.form-footer {
-  text-align: center;
-  margin-top: 20px;
-  font-size: 14px;
-}
-
-.form-footer a {
-  color: #3a3a3a;
-  text-decoration: none;
-  font-weight: 600;
-  transition: text-decoration 0.3s;
-}
-
-.form-footer a:hover {
-  text-decoration: underline;
-}
-
-/* Mobile */
-@media (max-width: 768px) {
-  .header {
-    margin: 12px 0;
-    padding: 8px 0;
-  }
-
-  .logo-desktop {
-    display: none;
-  }
-
-  .logo-mobile {
-    display: block;
-    height: 38px;
-  }
-
-  .register-container {
-    margin: 20px auto;
-    padding: 0 15px;
-  }
-
-  .register-form {
-    padding: 20px;
-  }
-
-  .form-title {
-    font-size: 28px;
-    margin-bottom: 25px;
-  }
-}
-</style>

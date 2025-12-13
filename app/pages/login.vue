@@ -1,349 +1,92 @@
 <template>
-  <div>
-    <!-- Minimal HEADER with only logo -->
-    <header class="header">
-      <div class="logo-center">
-        <NuxtLink to="/" class="logo-link">
-          <img
-            src="/assets/logo.png"
-            alt="Ezzy Step"
-            class="logo logo-desktop"
-          />
-          <img
-            src="/assets/logo.png"
-            alt="Ezzy Step"
-            class="logo logo-mobile"
-          />
-        </NuxtLink>
-      </div>
+  <div class="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+    <header class="w-full py-6 flex justify-center">
+      <NuxtLink to="/" class="flex items-center">
+        <img src="/assets/logo.png" alt="Ezzy Step" class="h-12 object-contain" />
+      </NuxtLink>
     </header>
 
-    <!-- Login Form -->
-    <main>
-      <div class="login-container">
-        <form class="login-form" @submit.prevent="onLogin">
-          <h1 class="form-title">Welcome Back</h1>
+    <main class="flex-grow flex items-center justify-center px-4">
+      <form
+        @submit.prevent="onLogin"
+        class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 w-full max-w-md space-y-6"
+      >
+        <h1 class="text-2xl font-bold text-center text-gray-900 dark:text-gray-100">Welcome Back</h1>
 
-          <div v-if="errors.general" class="error-message">
-            ❌ {{ errors.general }}
-          </div>
+        <div v-if="error" class="bg-red-100 text-red-700 p-3 rounded-md text-sm">
+          ❌ {{ error }}
+        </div>
 
-          <div class="form-group">
-            <label for="email" class="form-label">Email Address</label>
-            <input
-              v-model="form.email"
-              type="email"
-              id="email"
-              class="form-input"
-              placeholder="Enter your email"
-              required
-              :disabled="loading.login"
-            />
-            <div v-if="errors.email" class="field-error">
-              {{ errors.email }}
-            </div>
-          </div>
+        <div class="space-y-1">
+          <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Email</label>
+          <input
+            id="email"
+            type="email"
+            v-model="form.email"
+            required
+            :disabled="loading"
+            placeholder="Enter your email"
+            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 disabled:bg-gray-200 disabled:dark:bg-gray-600"
+          />
+        </div>
 
-          <div class="form-group">
-            <label for="password" class="form-label">Password</label>
-            <input
-              v-model="form.password"
-              type="password"
-              id="password"
-              class="form-input"
-              placeholder="Enter your password"
-              required
-              :disabled="loading.login"
-            />
-            <div v-if="errors.password" class="field-error">
-              {{ errors.password }}
-            </div>
-          </div>
+        <div class="space-y-1">
+          <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Password</label>
+          <input
+            id="password"
+            type="password"
+            v-model="form.password"
+            required
+            :disabled="loading"
+            placeholder="Enter your password"
+            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 disabled:bg-gray-200 disabled:dark:bg-gray-600"
+          />
+        </div>
 
-          <div class="form-options">
-            <div class="remember-me">
-              <input v-model="rememberMe" type="checkbox" id="remember" />
-              <label for="remember">Remember me</label>
-            </div>
-            <NuxtLink href="#" class="forgot-password"
-              >Forgot password?</NuxtLink
-            >
-          </div>
+        <button
+          type="submit"
+          :disabled="loading"
+          class="w-full bg-black dark:bg-white text-white dark:text-black font-semibold py-2 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {{ loading ? 'Logging in...' : 'Log In' }}
+        </button>
 
-          <button type="submit" class="form-submit" :disabled="loading.login">
-            {{ loading.login ? "Logging in..." : "Log In" }}
-          </button>
-
-          <div class="form-footer">
-            <p>
-              Don't have an account? <NuxtLink to="/register">Sign up</NuxtLink>
-            </p>
-          </div>
-        </form>
-      </div>
+        <p class="text-center text-sm text-gray-600 dark:text-gray-300">
+          Don't have an account?
+          <NuxtLink to="/register" class="font-medium hover:underline">Sign up</NuxtLink>
+        </p>
+      </form>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from "vue";
-import { useAuth } from "~~/composables/useAuth";
+import { reactive, ref } from 'vue'
+import { useAuthStore } from '~~/stores/auth'
+import { useRouter } from 'vue-router'
 
-definePageMeta({
-  middleware: "guest",
-  layout: false,
-});
+const auth = useAuthStore()
+const router = useRouter()
 
-const { login, loading, errors, clearErrors } = useAuth();
-const rememberMe = ref(false);
-const form = reactive({
-  email: "",
-  password: "",
-});
+const form = reactive({ email: '', password: '' })
+const loading = ref(false)
+const error = ref<string | null>(null)
 
 async function onLogin() {
+  error.value = null
+  loading.value = true
   try {
-    clearErrors();
-    await login({
-      email: form.email,
-      password: form.password,
-      rememberMe: rememberMe.value,
-    });
-    await navigateTo("/");
-  } catch (error) {
-    console.error("Login failed:", error);
+    await $fetch('/api/login', {
+      method: 'POST',
+      body: { email: form.email, password: form.password, rememberMe: true },
+      credentials: 'include',
+    })
+    await auth.fetchUser() // подтягиваем user сразу после login
+    await router.push('/')
+  } catch (e: any) {
+    error.value = e?.data?.message || 'Login failed'
+  } finally {
+    loading.value = false
   }
 }
 </script>
-
-<style scoped>
-/* Стили остаются без изменений, так как хедер здесь уникальный (минималистичный) */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: Arial, Helvetica, sans-serif;
-  color: #111;
-  background: #fff;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Header */
-.header {
-  width: 100%;
-  margin: 18px 0;
-  padding: 12px 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-}
-
-.logo-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.logo {
-  height: 60px;
-  width: auto;
-  display: block;
-  object-fit: contain;
-}
-
-.logo-mobile {
-  display: none;
-}
-
-.logo-link {
-  text-decoration: none;
-}
-
-/* Login form */
-.login-container {
-  width: 100%;
-  max-width: 500px;
-  margin: auto;
-  padding: 0 20px;
-}
-
-.login-form {
-  background: #fff;
-  padding: 30px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.form-title {
-  font-size: 32px;
-  font-weight: bold;
-  margin-bottom: 30px;
-  text-align: center;
-}
-
-.error-message {
-  color: #d32f2f;
-  padding: 10px;
-  background: #ffebee;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  font-size: 14px;
-}
-
-.warning-message {
-  color: #f57c00;
-  padding: 10px;
-  background: #fff3e0;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  font-size: 14px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.form-input {
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 16px;
-  transition: border-color 0.3s;
-}
-
-.form-input:focus {
-  border-color: #3a3a3a;
-  outline: none;
-}
-
-.form-input:disabled {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
-}
-
-.field-error {
-  color: #d32f2f;
-  font-size: 13px;
-  margin-top: 5px;
-}
-
-.form-options {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-}
-
-.remember-me {
-  display: flex;
-  align-items: center;
-}
-
-.remember-me input {
-  margin-right: 8px;
-  width: 18px;
-  height: 18px;
-}
-
-.forgot-password {
-  color: #3a3a3a;
-  text-decoration: none;
-  font-size: 14px;
-  transition: text-decoration 0.3s;
-}
-
-.forgot-password:hover {
-  text-decoration: underline;
-}
-
-.form-submit {
-  width: 100%;
-  padding: 14px;
-  background: #000;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.form-submit:hover:not(:disabled) {
-  background: #333;
-}
-
-.form-submit:disabled {
-  background: #999;
-  cursor: not-allowed;
-}
-
-.form-footer {
-  text-align: center;
-  margin-top: 25px;
-  font-size: 14px;
-}
-
-.form-footer a {
-  color: #3a3a3a;
-  text-decoration: none;
-  font-weight: 600;
-  transition: text-decoration 0.3s;
-}
-
-.form-footer a:hover {
-  text-decoration: underline;
-}
-
-/* Mobile */
-@media (max-width: 768px) {
-  .header {
-    margin: 12px 0;
-    padding: 8px 0;
-  }
-
-  .logo-desktop {
-    display: none;
-  }
-
-  .logo-mobile {
-    display: block;
-    height: 38px;
-  }
-
-  .login-container {
-    margin: 20px auto;
-    padding: 0 15px;
-  }
-
-  .login-form {
-    padding: 20px;
-  }
-
-  .form-title {
-    font-size: 28px;
-    margin-bottom: 25px;
-  }
-
-  .form-options {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-  }
-}
-</style>

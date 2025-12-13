@@ -1,491 +1,55 @@
 <template>
-  <header class="header">
-    <div class="header-left">
-      <div class="burger-container">
-        <button class="burger" aria-label="menu" @click="toggleCatalogMenu">
-          ☰
-        </button>
-        <div v-if="showCatalogMenu" class="catalog-dropdown"> ... </div>
-      </div>
-    </div>
-
-    <div class="logo-center">
-      <NuxtLink to="/" class="logo-link">
-        <img src="/assets/logo.png" alt="Ezzy Step" class="logo logo-desktop" />
-        <img src="/assets/logomob.png" alt="Ezzy Step" class="logo logo-mobile" />
+  <header class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-3 flex items-center justify-between">
+    <!-- Logo + nav -->
+    <div class="flex items-center space-x-4">
+      <NuxtLink to="/" class="flex items-center">
+        <img src="/assets/logo.png" alt="Ezzy Step" class="h-10 w-auto" />
       </NuxtLink>
+      <nav class="flex items-center space-x-3">
+        <NuxtLink to="/catalog" :class="navLinkClass('/catalog')">Catalog</NuxtLink>
+        <NuxtLink to="/about" :class="navLinkClass('/about')">About</NuxtLink>
+      </nav>
     </div>
 
-    <div class="header-right">
-      <div class="search-wrap">
-        <input v-model="searchQuery" type="text" class="search-input" placeholder="Search" @keyup.enter="handleSearch" />
-      </div>
-
-      <div class="auth-buttons">
-        <!-- User Logged In State -->
-        <div v-if="user" class="auth-logged-in">
-          <NuxtLink to="/profile" class="cart-icon-link">
-            <div class="cart-icon">
-              <img src="/assets/cart.png" alt="Cart" class="cart-icon-img" />
-              <span v-if="cartItemCount > 0" class="cart-badge">{{ cartItemCount > 9 ? "9+" : cartItemCount }}</span>
-            </div>
-          </NuxtLink>
-          <NuxtLink to="/profile" class="btn outline">PROFILE</NuxtLink>
-          <button @click="onLogout" class="btn outline">LOG OUT</button>
-        </div>
-
-        <!-- User Logged Out State -->
-        <div v-else class="auth-logged-out">
-          <NuxtLink to="/register" class="btn join">JOIN NOW</NuxtLink>
-          <NuxtLink to="/login" class="btn outline">LOG IN</NuxtLink>
-        </div>
-      </div>
-    </div>
-
-    <!-- Mobile Icons -->
-    <div class="mobile-icons" aria-hidden="true">
-      <div v-if="user" class="mobile-cart-wrapper">
-        <NuxtLink to="/profile" class="icon-btn" aria-label="cart">
-          <img src="/assets/cart.png" alt="" />
-          <span v-if="mobileCartItemCount > 0" class="mobile-cart-badge">{{ mobileCartItemCount > 9 ? "9+" : mobileCartItemCount }}</span>
+    <!-- Auth -->
+    <div class="flex items-center space-x-3">
+      <template v-if="user">
+        <NuxtLink to="/profile" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+          Profile
         </NuxtLink>
-      </div>
-      <button class="icon-btn" aria-label="notifications"><img src="/assets/bell.png" alt="" /></button>
-      <button class="icon-btn" aria-label="search"><img src="/assets/search.png" alt="" /></button>
+        <button @click="onLogout" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+          Log Out
+        </button>
+      </template>
+      <template v-else>
+        <NuxtLink to="/register" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">
+          Register
+        </NuxtLink>
+        <NuxtLink to="/login" class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700 transition">
+          Log In
+        </NuxtLink>
+      </template>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { useAuth } from "~~/composables/useAuth";
-import type { CartItem } from "~~/types/client";
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { useAuthStore } from '~~/stores/auth'
 
-const auth = useAuth();
-const route = useRoute();
-const router = useRouter();
+const auth = useAuthStore()
+const route = useRoute()
 
-const user = computed(() => auth.user.value);
+const user = computed(() => auth.user)
 
-const searchQuery = ref((route.query.q as string) || "");
-const showCatalogMenu = ref(false);
-
-const { data: cartData, refresh: refreshCart } = useFetch<CartItem[]>("/api/cart", {
-  key: "header-cart",
-  // не делаем fetch немедленно на SSR — будем триггерить загрузку при появлении user
-  immediate: false,
-  server: false,
-});
-
-watch(
-  user,
-  (newUser) => {
-    if (newUser) {
-      // загружаем корзину для юзера
-      void refreshCart();
-    }
-  },
-  { immediate: true },
-);
-
-const cartItemCount = computed(() => {
-  if (!cartData.value || !Array.isArray(cartData.value)) return 0;
-  return cartData.value.reduce((total: number, item: CartItem) => total + item.amount, 0);
-});
-
-const mobileCartItemCount = computed(() => cartItemCount.value);
-
-function handleSearch() {
-  if (searchQuery.value.trim()) {
-    router.push(`/catalog?q=${encodeURIComponent(searchQuery.value)}`);
-  } else {
-    router.push("/catalog");
-  }
+function onLogout() {
+  auth.logout()
 }
 
-async function onLogout() {
-  try {
-    await auth.logout();
-    await navigateTo("/");
-    void refreshCart();
-  } catch (error) {
-    console.error("Logout failed:", error);
-  }
+function navLinkClass(path: string) {
+  const base = 'px-3 py-2 rounded-md font-medium transition'
+  const active = route.path === path ? 'bg-gray-200 dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+  return `${base} ${active}`
 }
-
-function toggleCatalogMenu() {
-  showCatalogMenu.value = !showCatalogMenu.value;
-}
-
-function hideCatalogMenu() {
-  showCatalogMenu.value = false;
-}
-
-onMounted(() => {
-  document.addEventListener("click", (event) => {
-    const target = event.target as HTMLElement;
-    if (!target.closest(".burger-container")) {
-      showCatalogMenu.value = false;
-    }
-  });
-});
 </script>
-
-<style scoped>
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-.header {
-  width: 92%;
-  max-width: 1400px;
-  margin: 18px auto;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 18px;
-  border-radius: 60px;
-  background: #fff;
-  border: 2px solid #3a3a3a;
-  justify-content: space-between;
-  position: relative;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.burger-container {
-  position: relative;
-}
-
-.burger {
-  font-size: 26px;
-  line-height: 1;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: #111;
-  padding: 8px;
-  transition: color 0.3s;
-}
-
-.burger:hover {
-  color: #666;
-}
-
-.catalog-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 280px;
-  background: white;
-  border-radius: 12px;
-  border: 2px solid #3a3a3a;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  margin-top: 8px;
-  overflow: hidden;
-}
-
-.catalog-dropdown-header {
-  padding: 16px 20px;
-  font-weight: 700;
-  font-size: 18px;
-  background: #f5f5f5;
-  border-bottom: 1px solid #e0e0e0;
-  color: #111;
-}
-
-.catalog-dropdown-content {
-  padding: 12px 0;
-}
-
-.catalog-item {
-  display: flex;
-  align-items: center;
-  padding: 12px 20px;
-  text-decoration: none;
-  color: #333;
-  transition: background 0.2s;
-}
-
-.catalog-item:hover {
-  background: #f9f9f9;
-}
-
-.catalog-item-icon {
-  font-size: 20px;
-  margin-right: 15px;
-  width: 24px;
-  text-align: center;
-}
-
-.catalog-item-text {
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.cart-icon-link {
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-  position: relative;
-}
-
-.cart-icon {
-  position: relative;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.cart-icon-img {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-}
-
-.cart-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background: #ff3b30;
-  color: white;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  font-size: 12px;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.logo-center {
-  position: absolute;
-  left: 45%;
-  transform: translateX(-50%);
-}
-
-.logo {
-  height: 60px;
-  width: auto;
-  display: block;
-  object-fit: contain;
-}
-
-.logo-mobile {
-  display: none;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-  justify-content: flex-end;
-}
-
-.search-wrap {
-  display: flex;
-  align-items: center;
-}
-
-.search-input {
-  height: 40px;
-  padding: 8px 14px;
-  border-radius: 22px;
-  border: 1px solid #999;
-  min-width: 220px;
-  font-size: 15px;
-}
-
-.btn {
-  display: inline-block;
-  text-decoration: none;
-  padding: 8px 18px;
-  border-radius: 22px;
-  font-weight: 600;
-  font-size: 14px;
-  border: none;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.btn.join {
-  background: #000;
-  color: #fff;
-}
-
-.btn.outline {
-  background: transparent;
-  color: #000;
-  border: 1px solid #000;
-}
-
-.btn:hover {
-  opacity: 0.8;
-}
-
-.auth-buttons {
-  display: contents;
-}
-
-.auth-logged-in,
-.auth-logged-out {
-  display: contents;
-}
-
-.auth-skeleton {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.btn-skeleton {
-  width: 80px;
-  height: 36px;
-  background: #f0f0f0;
-  border-radius: 22px;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.mobile-cart-wrapper {
-  display: contents;
-}
-
-.mobile-icons {
-  display: none;
-  gap: 12px;
-  align-items: center;
-}
-
-.mobile-icons .icon-btn {
-  position: relative;
-  background: transparent;
-  border: none;
-  padding: 6px;
-  cursor: pointer;
-}
-
-.mobile-cart-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background: #ff3b30;
-  color: white;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  font-size: 11px;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.icon-btn img {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-}
-
-@media (max-width: 768px) {
-  .header {
-    width: 100%;
-    margin: 12px 0 0 0;
-    border-radius: 60px;
-    padding: 12px 18px;
-    background: #3a3a3a;
-    border: 2px solid #3a3a3a;
-    justify-content: flex-start;
-  }
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: initial;
-  }
-
-  .burger {
-    color: #fff;
-  }
-
-  .catalog-dropdown {
-    width: 260px;
-    left: -10px;
-  }
-
-  .logo-center {
-    position: static;
-    transform: none;
-    margin: 0 auto;
-    flex: 1;
-    text-align: center;
-  }
-
-  .logo-desktop {
-    display: none;
-  }
-
-  .logo-mobile {
-    display: block;
-    height: 38px;
-  }
-
-  .mobile-icons {
-    display: flex;
-    margin-left: auto;
-    flex: initial;
-  }
-
-  .mobile-icons img {
-    filter: brightness(0) invert(1);
-    width: 20px;
-    height: 20px;
-  }
-
-  .header-right {
-    display: none;
-  }
-}
-
-@media (max-width: 480px) {
-  .catalog-dropdown {
-    width: 240px;
-  }
-
-  .catalog-dropdown-header {
-    font-size: 16px;
-    padding: 14px 16px;
-  }
-
-  .catalog-item {
-    padding: 10px 16px;
-  }
-
-  .catalog-item-text {
-    font-size: 14px;
-  }
-}
-</style>

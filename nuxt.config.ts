@@ -16,4 +16,8 @@ export default defineNuxtConfig({
     typeCheck: true,
     strict: true,
   },
+  modules: [
+    '@nuxtjs/tailwindcss',
+    '@pinia/nuxt',
+  ],
 });

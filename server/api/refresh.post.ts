@@ -16,7 +16,10 @@ export default defineEventHandler(async (event) => {
   try {
     const token = getCookie(event, "token");
     if (!token) {
-      throw createError({ statusCode: 401, statusMessage: "No token provided" });
+      throw createError({
+        statusCode: 401,
+        statusMessage: "No token provided",
+      });
     }
 
     const { secret } = getJwtConfig();
@@ -25,25 +28,39 @@ export default defineEventHandler(async (event) => {
     try {
       payload = jwt.verify(token, secret);
     } catch (err) {
-      throw createError({ statusCode: 401, statusMessage: "Invalid or expired token" });
+      throw createError({
+        statusCode: 401,
+        statusMessage: "Invalid or expired token",
+      });
     }
 
     const userId = payload.sub;
     const jti = payload.jti;
     if (!userId || !jti) {
-      throw createError({ statusCode: 401, statusMessage: "Invalid token payload" });
+      throw createError({
+        statusCode: 401,
+        statusMessage: "Invalid token payload",
+      });
     }
 
     const session = (await db
       .prepare("SELECT expiresAt, invalidatedAt FROM sessions WHERE jti = ?")
-      .get(jti)) as { expiresAt: string; invalidatedAt: string | null } | undefined;
+      .get(jti)) as
+      | { expiresAt: string; invalidatedAt: string | null }
+      | undefined;
 
     if (!session) {
-      throw createError({ statusCode: 401, statusMessage: "Session not found" });
+      throw createError({
+        statusCode: 401,
+        statusMessage: "Session not found",
+      });
     }
 
     if (session.invalidatedAt) {
-      throw createError({ statusCode: 401, statusMessage: "Session invalidated" });
+      throw createError({
+        statusCode: 401,
+        statusMessage: "Session invalidated",
+      });
     }
 
     if (new Date(session.expiresAt).getTime() < Date.now()) {
@@ -59,8 +76,11 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 401, statusMessage: "User not found" });
     }
 
-    const expSec: number | undefined = typeof payload.exp === "number" ? payload.exp : undefined;
-    const rotateIfLessThanSec = Number(process.env.JWT_ROTATE_IF_LESS_THAN_SEC) || DEFAULT_ROTATE_IF_LESS_THAN_SEC;
+    const expSec: number | undefined =
+      typeof payload.exp === "number" ? payload.exp : undefined;
+    const rotateIfLessThanSec =
+      Number(process.env.JWT_ROTATE_IF_LESS_THAN_SEC) ||
+      DEFAULT_ROTATE_IF_LESS_THAN_SEC;
 
     let rotated = false;
 
@@ -97,6 +117,9 @@ export default defineEventHandler(async (event) => {
   } catch (error: any) {
     if (error?.statusCode) throw error;
     console.error("Error in /api/refresh:", error);
-    throw createError({ statusCode: 500, statusMessage: "Internal server error" });
+    throw createError({
+      statusCode: 500,
+      statusMessage: "Internal server error",
+    });
   }
 });

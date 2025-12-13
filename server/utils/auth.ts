@@ -12,39 +12,45 @@ interface TokenPayload {
   jti: string;
 }
 
+/* =======================
+   JWT CONFIG
+======================= */
 export function getJwtConfig() {
   const config = useRuntimeConfig();
+  const expiresInSeconds =
+    Number(config.jwtExpiresInSeconds) ||
+    (typeof config.jwtExpiresIn === "string"
+      ? parseInt(config.jwtExpiresIn) * 3600
+      : 3600);
+
   return {
     secret: String(config.jwtSecret),
-    expiresInSeconds:
-      Number(config.jwtExpiresInSeconds) ||
-      (typeof config.jwtExpiresIn === "string"
-        ? parseInt(config.jwtExpiresIn) * 3600
-        : 3600),
+    expiresInSeconds,
   };
 }
 
+/* =======================
+   CSRF TOKEN
+======================= */
 export function generateCsrfToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
 /* =======================
-   TOKEN SIGNING
-   ======================= */
-
+   SIGN JWT TOKEN
+======================= */
 export async function signToken(
   user: Pick<User, "id" | "username" | "email">,
-  rememberMe: boolean = false,
+  rememberMe = false
 ) {
   const { secret, expiresInSeconds } = getJwtConfig();
   const jti = crypto.randomUUID();
-
   const tokenExpiresIn = rememberMe ? expiresInSeconds * 7 : expiresInSeconds;
 
   const token = jwt.sign(
     { sub: user.id, username: user.username, email: user.email, jti },
     secret,
-    { expiresIn: `${tokenExpiresIn}s` },
+    { expiresIn: `${tokenExpiresIn}s` }
   );
 
   const expiresAt = new Date(Date.now() + tokenExpiresIn * 1000);
@@ -58,8 +64,7 @@ export async function signToken(
 
 /* =======================
    COOKIES
-   ======================= */
-
+======================= */
 export function setTokenCookie(event: H3Event, token: string) {
   const { expiresInSeconds } = getJwtConfig();
 
@@ -83,12 +88,9 @@ export function setCsrfCookie(event: H3Event, token: string) {
 }
 
 /* =======================
-   AUTH HELPERS
-   ======================= */
-
-export async function getUserIdFromToken(
-  event: H3Event,
-): Promise<string | null> {
+   GET USER ID FROM TOKEN
+======================= */
+export async function getUserIdFromToken(event: H3Event): Promise<string | null> {
   const token = getCookie(event, "token");
   if (!token) return null;
 
@@ -99,15 +101,10 @@ export async function getUserIdFromToken(
     if (!payload.jti) return null;
 
     const session = (await db
-      .prepare(
-        "SELECT userId, expiresAt, invalidatedAt FROM sessions WHERE jti = ?",
-      )
-      .get(payload.jti)) as
-      | Pick<Session, "userId" | "expiresAt" | "invalidatedAt">
-      | undefined;
+      .prepare("SELECT userId, expiresAt, invalidatedAt FROM sessions WHERE jti = ?")
+      .get(payload.jti)) as Pick<Session, "userId" | "expiresAt" | "invalidatedAt"> | undefined;
 
     if (!session || session.invalidatedAt) return null;
-
     if (new Date(session.expiresAt).getTime() < Date.now()) {
       await db.prepare("DELETE FROM sessions WHERE jti = ?").run(payload.jti);
       return null;
@@ -119,6 +116,9 @@ export async function getUserIdFromToken(
   }
 }
 
+/* =======================
+   INVALIDATE TOKEN
+======================= */
 export async function invalidateToken(event: H3Event): Promise<boolean> {
   const token = getCookie(event, "token");
   if (!token) return false;
@@ -127,12 +127,9 @@ export async function invalidateToken(event: H3Event): Promise<boolean> {
 
   try {
     const payload = jwt.verify(token, secret) as TokenPayload;
-
     if (payload.jti) {
       await db
-        .prepare(
-          "UPDATE sessions SET invalidatedAt = datetime('now') WHERE jti = ?",
-        )
+        .prepare("UPDATE sessions SET invalidatedAt = datetime('now') WHERE jti = ?")
         .run(payload.jti);
     }
   } catch {
@@ -144,8 +141,7 @@ export async function invalidateToken(event: H3Event): Promise<boolean> {
 
 /* =======================
    CLEAR COOKIES
-   ======================= */
-
+======================= */
 export function clearTokenCookie(event: H3Event) {
   setCookie(event, "token", "", {
     httpOnly: true,
