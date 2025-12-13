@@ -8,6 +8,7 @@ import crypto from "crypto";
 interface TokenPayload {
   sub: string;
   username: string;
+  email: string;
   jti: string;
 }
 
@@ -28,7 +29,7 @@ export function generateCsrfToken(): string {
 }
 
 export function signToken(
-  user: Pick<User, "id" | "username">,
+  user: Pick<User, "id" | "username" | "email">,
   rememberMe: boolean = false,
 ) {
   const { secret, expiresInSeconds } = getJwtConfig();
@@ -36,8 +37,9 @@ export function signToken(
 
   const tokenExpiresIn = rememberMe ? expiresInSeconds * 7 : expiresInSeconds;
 
+  // Включаем email в токен, чтобы его можно было декодировать на клиенте
   const token = jwt.sign(
-    { sub: user.id, username: user.username, jti },
+    { sub: user.id, username: user.username, email: user.email, jti },
     secret,
     { expiresIn: `${tokenExpiresIn}s` },
   );

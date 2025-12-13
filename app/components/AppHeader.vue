@@ -82,27 +82,52 @@
           @keyup.enter="handleSearch"
         />
       </div>
-      <NuxtLink v-if="user" to="/profile" class="cart-icon-link">
-        <div class="cart-icon">
-          <img src="/assets/cart.png" alt="Cart" class="cart-icon-img" />
-          <span v-if="cartItemCount > 0" class="cart-badge">
-            {{ cartItemCount > 9 ? "9+" : cartItemCount }}
-          </span>
+
+      <ClientOnly>
+        <div class="auth-buttons">
+          <!-- User Logged In State -->
+          <div v-show="user" class="auth-logged-in">
+            <NuxtLink to="/profile" class="cart-icon-link">
+              <div class="cart-icon">
+                <img src="/assets/cart.png" alt="Cart" class="cart-icon-img" />
+                <span v-if="cartItemCount > 0" class="cart-badge">
+                  {{ cartItemCount > 9 ? "9+" : cartItemCount }}
+                </span>
+              </div>
+            </NuxtLink>
+            <NuxtLink to="/profile" class="btn outline">PROFILE</NuxtLink>
+            <button @click="onLogout" class="btn outline">LOG OUT</button>
+          </div>
+
+          <!-- User Logged Out State -->
+          <div v-show="!user" class="auth-logged-out">
+            <NuxtLink to="/register" class="btn join">JOIN NOW</NuxtLink>
+            <NuxtLink to="/login" class="btn outline">LOG IN</NuxtLink>
+          </div>
         </div>
-      </NuxtLink>
-      <NuxtLink v-if="!user" to="/register" class="btn join">JOIN NOW</NuxtLink>
-      <NuxtLink v-if="!user" to="/login" class="btn outline">LOG IN</NuxtLink>
-      <NuxtLink v-if="user" to="/profile" class="btn outline">PROFILE</NuxtLink>
-      <button v-if="user" @click="onLogout" class="btn outline">LOG OUT</button>
+
+        <!-- Fallback для SSR -->
+        <template #fallback>
+          <div class="auth-skeleton">
+            <div class="btn-skeleton"></div>
+            <div class="btn-skeleton"></div>
+          </div>
+        </template>
+      </ClientOnly>
     </div>
 
+    <!-- Mobile Icons -->
     <div class="mobile-icons" aria-hidden="true">
-      <NuxtLink v-if="user" to="/profile" class="icon-btn" aria-label="cart">
-        <img src="/assets/cart.png" alt="" />
-        <span v-if="mobileCartItemCount > 0" class="mobile-cart-badge">
-          {{ mobileCartItemCount > 9 ? "9+" : mobileCartItemCount }}
-        </span>
-      </NuxtLink>
+      <ClientOnly>
+        <div v-show="user" class="mobile-cart-wrapper">
+          <NuxtLink to="/profile" class="icon-btn" aria-label="cart">
+            <img src="/assets/cart.png" alt="" />
+            <span v-if="mobileCartItemCount > 0" class="mobile-cart-badge">
+              {{ mobileCartItemCount > 9 ? "9+" : mobileCartItemCount }}
+            </span>
+          </NuxtLink>
+        </div>
+      </ClientOnly>
       <button class="icon-btn" aria-label="notifications">
         <img src="/assets/bell.png" alt="" />
       </button>
@@ -114,26 +139,40 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-// Исправлен путь с учетом того, что файл теперь в app/components
-import { useAuth } from "../../composables/useAuth";
-import type { CartItem } from "../../types/client";
-
-// Явный импорт для устранения ошибок IDE
-import { useFetch, navigateTo } from "#imports";
+import { useAuth } from "~~/composables/useAuth";
+import type { CartItem } from "~~/types/client";
 
 const auth = useAuth();
 const route = useRoute();
 const router = useRouter();
+
 const user = computed(() => auth.user.value);
+
 const searchQuery = ref((route.query.q as string) || "");
 const showCatalogMenu = ref(false);
 
-const { data: cartData } = await useFetch<CartItem[]>("/api/cart", {
-  immediate: true,
-  key: "header-cart",
-});
+const { data: cartData, refresh: refreshCart } = await useFetch<CartItem[]>(
+  "/api/cart",
+  {
+    key: "header-cart",
+    watch: [user],
+    immediate: false, // Не делаем запрос сразу
+    server: false, // Только на клиенте
+  },
+);
+
+// Загружаем корзину только если пользователь залогинен
+watch(
+  user,
+  (newUser) => {
+    if (newUser) {
+      refreshCart();
+    }
+  },
+  { immediate: true },
+);
 
 const cartItemCount = computed(() => {
   if (!cartData.value || !Array.isArray(cartData.value)) return 0;
@@ -143,13 +182,7 @@ const cartItemCount = computed(() => {
   );
 });
 
-const mobileCartItemCount = computed(() => {
-  if (!cartData.value || !Array.isArray(cartData.value)) return 0;
-  return cartData.value.reduce(
-    (total: number, item: CartItem) => total + item.amount,
-    0,
-  );
-});
+const mobileCartItemCount = computed(() => cartItemCount.value);
 
 function handleSearch() {
   if (searchQuery.value.trim()) {
@@ -163,6 +196,7 @@ async function onLogout() {
   try {
     await auth.logout();
     await navigateTo("/");
+    refreshCart();
   } catch (error) {
     console.error("Logout failed:", error);
   }
@@ -388,6 +422,43 @@ onMounted(() => {
 
 .btn:hover {
   opacity: 0.8;
+}
+
+.auth-buttons {
+  display: contents;
+}
+
+.auth-logged-in,
+.auth-logged-out {
+  display: contents;
+}
+
+.auth-skeleton {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn-skeleton {
+  width: 80px;
+  height: 36px;
+  background: #f0f0f0;
+  border-radius: 22px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.mobile-cart-wrapper {
+  display: contents;
 }
 
 .mobile-icons {

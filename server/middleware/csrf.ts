@@ -2,17 +2,26 @@ import { getCookie, getHeader, setResponseStatus } from "h3";
 import { generateCsrfToken, setCsrfCookie } from "../utils/auth";
 
 export default defineEventHandler((event) => {
-  if (event.node.req.method === "GET") {
-    const token = generateCsrfToken();
-    setCsrfCookie(event, token);
+  const method = event.node.req.method || "";
+  const url = event.node.req.url || "";
+
+  // Для GET запросов генерируем CSRF токен если его нет
+  if (method === "GET") {
+    const existingToken = getCookie(event, "csrf-token");
+    if (!existingToken) {
+      const token = generateCsrfToken();
+      setCsrfCookie(event, token);
+    }
     return;
   }
 
-  if (event.node.req.url === "/api/refresh") {
+  // Не проверяем CSRF для refresh endpoint
+  if (url === "/api/refresh") {
     return;
   }
 
-  if (["POST", "PUT", "DELETE"].includes(event.node.req.method || "")) {
+  // Для POST, PUT, DELETE проверяем CSRF
+  if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
     const cookieToken = getCookie(event, "csrf-token");
     const headerToken = getHeader(event, "x-csrf-token");
 
@@ -34,6 +43,7 @@ export default defineEventHandler((event) => {
       });
     }
 
+    // После успешной валидации генерируем новый токен
     const newToken = generateCsrfToken();
     setCsrfCookie(event, newToken);
   }

@@ -113,6 +113,16 @@
             </div>
           </div>
 
+          <!-- Custom Message Box for Checkout Feedback -->
+          <div v-if="cartItems.length > 0" class="message-area">
+            <div
+              v-if="checkoutMessage"
+              :class="['checkout-message', messageType]"
+            >
+              {{ checkoutMessage }}
+            </div>
+          </div>
+
           <div v-if="cartItems.length > 0" class="checkout-section">
             <div class="order-summary">
               <span class="summary-label">Subtotal</span>
@@ -139,7 +149,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed } from "vue";
 import { useAuth } from "~~/composables/useAuth";
 import { useCsrfToken } from "~~/composables/useCsrfToken";
 import type { CartItem } from "~~/types/client";
@@ -153,7 +163,9 @@ const user = computed(() => auth.user.value);
 const userJoinDate = ref(new Date());
 const editMode = ref(false);
 
-// FIX: Добавлена типизация <CartItem[]>, чтобы избежать ошибки 'amount does not exist on type never'
+const checkoutMessage = ref<string | null>(null);
+const messageType = ref<"success" | "error" | null>(null);
+
 const {
   data: cartData,
   pending: isLoadingCart,
@@ -181,6 +193,15 @@ function formatDate(date: Date): string {
     month: "long",
     day: "numeric",
   });
+}
+
+function showMessage(message: string, type: "success" | "error") {
+  checkoutMessage.value = message;
+  messageType.value = type;
+  setTimeout(() => {
+    checkoutMessage.value = null;
+    messageType.value = null;
+  }, 5000);
 }
 
 async function increaseQty(productId: number, size: number) {
@@ -239,18 +260,12 @@ async function checkout() {
       headers: csrf.getHeader(),
     });
     await refreshCart();
-    alert("Order completed! Your cart has been cleared.");
+    showMessage("Order completed! Your cart has been cleared.", "success");
   } catch (error) {
     console.error("Checkout failed:", error);
-    alert("Checkout failed");
+    showMessage("Checkout failed. Please try again.", "error");
   }
 }
-
-onMounted(async () => {
-  if (!user.value) {
-    await auth.fetchMe();
-  }
-});
 </script>
 
 <style scoped>
@@ -535,6 +550,31 @@ onMounted(async () => {
   font-weight: bold;
   min-width: 30px;
   text-align: center;
+}
+
+/* Custom Message Styling */
+.message-area {
+  margin-top: 20px;
+}
+
+.checkout-message {
+  padding: 15px;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.checkout-message.success {
+  background-color: #e6ffed;
+  color: #008744;
+  border: 1px solid #c8f7d6;
+}
+
+.checkout-message.error {
+  background-color: #feeceb;
+  color: #ff3b30;
+  border: 1px solid #fdd5d2;
 }
 
 .checkout-section {

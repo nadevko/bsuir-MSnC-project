@@ -24,8 +24,8 @@
         <form class="login-form" @submit.prevent="onLogin">
           <h1 class="form-title">Welcome Back</h1>
 
-          <div v-if="auth.errors.general" class="error-message">
-            ❌ {{ auth.errors.general }}
+          <div v-if="errors.general" class="error-message">
+            ❌ {{ errors.general }}
           </div>
 
           <div class="form-group">
@@ -37,10 +37,10 @@
               class="form-input"
               placeholder="Enter your email"
               required
-              :disabled="auth.loading.login"
+              :disabled="loading.login"
             />
-            <div v-if="auth.errors.email" class="field-error">
-              {{ auth.errors.email }}
+            <div v-if="errors.email" class="field-error">
+              {{ errors.email }}
             </div>
           </div>
 
@@ -53,10 +53,10 @@
               class="form-input"
               placeholder="Enter your password"
               required
-              :disabled="auth.loading.login"
+              :disabled="loading.login"
             />
-            <div v-if="auth.errors.password" class="field-error">
-              {{ auth.errors.password }}
+            <div v-if="errors.password" class="field-error">
+              {{ errors.password }}
             </div>
           </div>
 
@@ -70,12 +70,8 @@
             >
           </div>
 
-          <button
-            type="submit"
-            class="form-submit"
-            :disabled="auth.loading.login"
-          >
-            {{ auth.loading.login ? "Logging in..." : "Log In" }}
+          <button type="submit" class="form-submit" :disabled="loading.login">
+            {{ loading.login ? "Logging in..." : "Log In" }}
           </button>
 
           <div class="form-footer">
@@ -99,7 +95,8 @@ definePageMeta({
   layout: false,
 });
 
-const auth = useAuth();
+// Деструктурируем значения, чтобы они стали top-level refs для корректной работы в шаблоне
+const { login, loading, errors, clearErrors } = useAuth();
 const rememberMe = ref(false);
 const form = reactive({
   email: "",
@@ -108,8 +105,8 @@ const form = reactive({
 
 async function onLogin() {
   try {
-    auth.clearErrors();
-    await auth.login({
+    clearErrors();
+    await login({
       email: form.email,
       password: form.password,
       rememberMe: rememberMe.value,

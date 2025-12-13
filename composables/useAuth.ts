@@ -1,4 +1,4 @@
-import { ref, reactive } from "vue";
+import { reactive } from "vue";
 import {
   isNetworkError,
   isAuthError,
@@ -21,15 +21,62 @@ export interface FormErrors {
   birthdate?: string;
 }
 
-export function useAuth() {
-  const user = ref<User | null>(null);
+// Функция для декодирования JWT токена на клиенте
+function decodeJWT(token: string): User | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
 
-  const loading = reactive({
+    const base64Payload = parts[1];
+    if (!base64Payload) return null;
+
+    const payload = JSON.parse(atob(base64Payload));
+
+    // Проверяем, не истек ли токен
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      return null;
+    }
+
+    // Возвращаем данные пользователя из токена
+    return {
+      id: payload.sub || "",
+      username: payload.username || "",
+      email: payload.email || "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Функция для получения токена из cookies на клиенте
+function getTokenFromCookie(): string | null {
+  if (!import.meta.client) return null;
+
+  const match = document.cookie.match(/token=([^;]+)/);
+  return match?.[1] ?? null;
+}
+
+// Инициализируем пользователя из токена ТОЛЬКО на клиенте
+function initUserFromToken(): User | null {
+  if (!import.meta.client) return null;
+
+  const token = getTokenFromCookie();
+  if (!token) return null;
+
+  return decodeJWT(token);
+}
+
+export function useAuth() {
+  // ВАЖНО: просто null, без функции инициализации
+  // Инициализация произойдёт в плагине
+  const user = useState<User | null>("auth-user", () => null);
+
+  const loading = useState("auth-loading", () => ({
     register: false,
     login: false,
     logout: false,
     refresh: false,
-  });
+  }));
 
   const errors = reactive<FormErrors>({});
 
@@ -41,13 +88,12 @@ export function useAuth() {
     errors.birthdate = undefined;
   }
 
-  async function fetchMe() {
-    try {
-      const data = await $fetch<User>("/api/me");
-      user.value = data ?? null;
-    } catch (e) {
-      if (isAuthError(e)) {
-        user.value = null;
+  // Инициализация пользователя из токена (вызывается из плагина)
+  function initFromToken() {
+    if (!user.value) {
+      const userData = initUserFromToken();
+      if (userData) {
+        user.value = userData;
       }
     }
   }
@@ -58,7 +104,7 @@ export function useAuth() {
     password: string;
     birthdate: string;
   }) {
-    loading.register = true;
+    loading.value.register = true;
     clearErrors();
 
     try {
@@ -89,7 +135,7 @@ export function useAuth() {
       }
       throw e;
     } finally {
-      loading.register = false;
+      loading.value.register = false;
     }
   }
 
@@ -98,7 +144,7 @@ export function useAuth() {
     password: string;
     rememberMe?: boolean;
   }) {
-    loading.login = true;
+    loading.value.login = true;
     clearErrors();
 
     try {
@@ -129,12 +175,12 @@ export function useAuth() {
       }
       throw e;
     } finally {
-      loading.login = false;
+      loading.value.login = false;
     }
   }
 
   async function logout() {
-    loading.logout = true;
+    loading.value.logout = true;
     clearErrors();
 
     try {
@@ -150,7 +196,7 @@ export function useAuth() {
       errors.general = msg;
       throw e;
     } finally {
-      loading.logout = false;
+      loading.value.logout = false;
     }
   }
 
@@ -158,7 +204,7 @@ export function useAuth() {
     user,
     errors,
     loading,
-    fetchMe,
+    initFromToken,
     register,
     login,
     logout,

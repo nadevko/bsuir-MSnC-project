@@ -88,11 +88,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { computed } from "vue";
 import { useRoute } from "vue-router";
-import { useAuth } from "~~/composables/useAuth";
 
-const auth = useAuth();
 const route = useRoute();
 
 const { data: products, pending: isLoading } = useFetch(
@@ -114,10 +112,6 @@ const allProducts = computed(() => {
 const premiumProducts = computed(() => allProducts.value.slice(0, 3));
 const popularProducts = computed(() => allProducts.value.slice(3, 6));
 const bestsellerProducts = computed(() => allProducts.value.slice(6, 9));
-
-onMounted(async () => {
-  await auth.fetchMe();
-});
 </script>
 
 <style scoped>

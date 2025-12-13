@@ -11,15 +11,13 @@ export function useTokenRefresh(user: Ref<User | null>) {
   function getTokenExpiry(): number | null {
     try {
       const match = document.cookie.match(/token=([^;]+)/);
-      if (!match) return null;
+      if (!match || !match[1]) return null;
 
       const token = match[1];
       const parts = token.split(".");
-      if (parts.length !== 3) return null;
+      if (parts.length !== 3 || !parts[1]) return null;
 
-      const payload = JSON.parse(
-        Buffer.from(parts[1], "base64").toString(),
-      ) as {
+      const payload = JSON.parse(atob(parts[1])) as {
         exp?: number;
       };
 

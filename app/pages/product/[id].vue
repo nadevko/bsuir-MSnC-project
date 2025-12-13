@@ -1,7 +1,6 @@
 <template>
   <div>
     <!-- Model Content -->
-    <!-- Хедера здесь больше нет, он придет из layouts/default.vue -->
     <main>
       <div class="model-container">
         <!-- Top Left - Product Image with Brand -->
@@ -91,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from "vue";
+import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
 import { useAuth } from "~~/composables/useAuth";
 import { useCsrfToken } from "~~/composables/useCsrfToken";
@@ -164,10 +163,6 @@ async function buyNow() {
 function goBack() {
   window.history.back();
 }
-
-onMounted(async () => {
-  await auth.fetchMe();
-});
 </script>
 
 <style scoped>
@@ -176,10 +171,6 @@ onMounted(async () => {
   margin: 0;
   padding: 0;
 }
-
-/* 
-   Стили Header удалены, так как они теперь в AppHeader.vue 
-*/
 
 /* Model Container */
 .model-container {
