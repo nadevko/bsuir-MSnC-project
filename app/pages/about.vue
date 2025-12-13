@@ -1,275 +1,71 @@
 <template>
-  <div>
-    <!-- Catalog Content -->
-    <main>
-      <div class="catalog-container">
-        <!-- Left column with large images -->
-        <div class="catalog-left">
-          <div class="large-image">
-            <img src="/assets/catalog-left1.png" alt="Sneaker Collection 1" />
-          </div>
-          <div class="large-image">
-            <img src="/assets/catalog-left2.png" alt="Sneaker Collection 2" />
-          </div>
-          <div class="large-image">
-            <img src="/assets/catalog-left3.png" alt="Sneaker Collection 3" />
-          </div>
-        </div>
+  <main class="max-w-7xl mx-auto px-4 py-16 space-y-24">
+    <!-- Hero Title -->
+    <section class="text-center space-y-6">
+      <h1 class="text-5xl md:text-6xl font-extrabold leading-tight">Read it on our Blog</h1>
+      <p class="text-gray-600 text-lg md:text-xl">The latest insights, stories, and guides from Ezzy Step.</p>
+    </section>
 
-        <!-- Right column with product grid -->
-        <div class="catalog-right">
-          <div v-if="isLoading" class="loading">Loading products...</div>
-
-          <template v-else>
-            <!-- Level 1 -->
-            <div class="catalog-level">
-              <div class="level-title">Premium Collection</div>
-              <div class="products-grid">
-                <div
-                  v-for="product in premiumProducts"
-                  :key="product.id"
-                  class="product-card"
-                >
-                  <NuxtLink :to="`/product/${product.id}`" class="product-link">
-                    <div class="product-image">
-                      <img :src="product.small_image" :alt="product.name" />
-                    </div>
-                    <div class="product-name">{{ product.name }}</div>
-                    <div class="product-price">${{ product.price }}</div>
-                  </NuxtLink>
-                </div>
-              </div>
-            </div>
-
-            <!-- Level 2 -->
-            <div class="catalog-level">
-              <div class="level-title">Popular Brands</div>
-              <div class="products-grid">
-                <div
-                  v-for="product in popularProducts"
-                  :key="product.id"
-                  class="product-card"
-                >
-                  <NuxtLink :to="`/product/${product.id}`" class="product-link">
-                    <div class="product-image">
-                      <img :src="product.small_image" :alt="product.name" />
-                    </div>
-                    <div class="product-name">{{ product.name }}</div>
-                    <div class="product-price">${{ product.price }}</div>
-                  </NuxtLink>
-                </div>
-              </div>
-            </div>
-
-            <!-- Level 3 -->
-            <div class="catalog-level">
-              <div class="level-title">Best Sellers</div>
-              <div class="products-grid">
-                <div
-                  v-for="product in bestsellerProducts"
-                  :key="product.id"
-                  class="product-card"
-                >
-                  <NuxtLink :to="`/product/${product.id}`" class="product-link">
-                    <div class="product-image">
-                      <img :src="product.small_image" :alt="product.name" />
-                    </div>
-                    <div class="product-name">{{ product.name }}</div>
-                    <div class="product-price">${{ product.price }}</div>
-                  </NuxtLink>
-                </div>
-              </div>
-            </div>
-          </template>
-        </div>
+    <!-- First Row: Text - Image - Text -->
+    <section class="grid md:grid-cols-3 gap-8 items-center">
+      <div class="space-y-4 text-center md:text-left">
+        <h2 class="text-3xl md:text-4xl font-bold">The Ultimate Guide to Writing</h2>
+        <p class="text-gray-700 leading-relaxed">Writing effectively is an art. Use simple, everyday words, be clear and direct, keep thoughts flowing logically, and aim for brevity.</p>
+        <p class="text-gray-700 leading-relaxed">Our ideas have a purpose, so choose words that accurately express them.</p>
       </div>
-    </main>
-  </div>
+
+      <div class="flex justify-center">
+        <img src="/assets/about1.png" alt="Writing Guide" class="rounded-xl shadow-lg w-full max-w-md object-cover">
+      </div>
+
+      <div class="space-y-4 text-center md:text-left">
+        <h2 class="text-3xl md:text-4xl font-bold">Clarity is Key</h2>
+        <p class="text-gray-700 leading-relaxed">Start by using simple words people can easily understand. Be direct and keep your writing clear and concise.</p>
+        <p class="text-gray-700 leading-relaxed">Ensure grammar is flawless, as it impacts credibility. Use active voice wherever possible.</p>
+      </div>
+    </section>
+
+    <!-- Second Row: Image - Text - Image -->
+    <section class="grid md:grid-cols-3 gap-8 items-center">
+      <div class="flex justify-center md:justify-start">
+        <img src="/assets/about2.png" alt="Writing Image 1" class="rounded-xl shadow-lg w-full max-w-sm object-cover border-2 border-gray-900">
+      </div>
+
+      <div class="space-y-4 text-center md:text-center">
+        <h2 class="text-3xl md:text-4xl font-bold">Precision & Style</h2>
+        <p class="text-gray-700 leading-relaxed">Clear, structured, and purpose-driven content resonates with readers. Focus on logical flow and readability.</p>
+      </div>
+
+      <div class="flex justify-center md:justify-end">
+        <img src="/assets/about3.png" alt="Writing Image 2" class="rounded-xl shadow-lg w-full max-w-sm object-cover border-2 border-gray-900">
+      </div>
+    </section>
+
+    <!-- Third Row: Text - Image - Text -->
+    <section class="grid md:grid-cols-3 gap-8 items-center">
+      <div class="space-y-4 text-center md:text-left">
+        <p class="text-gray-700 leading-relaxed">Writing effectively is an art. Start by using simple, everyday words. Be clear and direct. Keep thoughts flowing logically, and aim for brevity unless writing long-form.</p>
+      </div>
+
+      <div class="flex justify-center">
+        <img src="/assets/about4.png" alt="Writing Image 3" class="rounded-xl shadow-lg w-full max-w-md object-cover">
+      </div>
+
+      <div class="space-y-4 text-center md:text-left">
+        <p class="text-gray-700 leading-relaxed">Choose words that express your ideas accurately. Proper grammar impacts credibility. Use active voice to make narratives easier to read.</p>
+      </div>
+    </section>
+  </main>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import { useRoute } from "vue-router";
-
-const route = useRoute();
-
-const { data: products, pending: isLoading } = useFetch(
-  () => {
-    const query = route.query.q ? `?q=${route.query.q}` : "";
-    return `/api/products${query}`;
-  },
-  {
-    immediate: true,
-    watch: [() => route.query.q],
-  },
-);
-
-const allProducts = computed(() => {
-  if (!products.value) return [];
-  return Array.isArray(products.value) ? products.value : [];
-});
-
-const premiumProducts = computed(() => allProducts.value.slice(0, 3));
-const popularProducts = computed(() => allProducts.value.slice(3, 6));
-const bestsellerProducts = computed(() => allProducts.value.slice(6, 9));
+// Пока тут нет динамических данных, всё статично
 </script>
 
 <style scoped>
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-/* Catalog Layout */
-.catalog-container {
-  width: 92%;
-  max-width: 1400px;
-  margin: 40px auto;
-  display: flex;
-  gap: 40px;
-}
-
-.catalog-left {
-  width: 33.33%;
-  display: flex;
-  flex-direction: column;
-  gap: 40px;
-}
-
-.large-image {
-  width: 100%;
-}
-
-.large-image img {
-  width: 100%;
-  height: 300px;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
-.catalog-right {
-  width: 66.67%;
-}
-
-.catalog-level {
-  margin-bottom: 60px;
-}
-
-.level-title {
-  font-size: 28px;
-  font-weight: bold;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #eee;
-}
-
-.products-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 25px;
-}
-
-.product-card {
-  text-align: center;
-}
-
-.product-link {
-  text-decoration: none;
-  color: inherit;
-  display: block;
+/* Можно добавить плавный hover для картинок */
+img:hover {
+  transform: scale(1.03);
   transition: transform 0.3s;
-}
-
-.product-link:hover {
-  transform: translateY(-5px);
-}
-
-.product-image {
-  width: 100%;
-  margin-bottom: 15px;
-}
-
-.product-image img {
-  width: 100%;
-  height: 300px;
-  object-fit: cover;
-  border-radius: 8px;
-  transition: filter 0.3s;
-}
-
-.product-link:hover .product-image img {
-  filter: brightness(0.95);
-}
-
-.product-name {
-  font-size: 16px;
-  font-weight: 600;
-  padding: 10px 15px;
-  border-radius: 25px;
-  background: #f5f5f5;
-  margin-bottom: 10px;
-  display: inline-block;
-  width: 100%;
-}
-
-.product-price {
-  font-size: 20px;
-  font-weight: bold;
-  padding: 10px 15px;
-  border-radius: 25px;
-  background: #e0e0e0;
-  color: #000;
-  display: inline-block;
-  width: 100%;
-}
-
-.loading {
-  text-align: center;
-  padding: 40px;
-  font-size: 18px;
-  color: #999;
-}
-
-/* Mobile */
-@media (max-width: 768px) {
-  .catalog-container {
-    width: 95%;
-    flex-direction: column;
-    gap: 30px;
-    margin: 20px auto;
-  }
-
-  .catalog-left,
-  .catalog-right {
-    width: 100%;
-  }
-
-  .catalog-left {
-    order: 2;
-  }
-
-  .large-image img {
-    height: 200px;
-  }
-
-  .products-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-  }
-
-  .product-image img {
-    height: 200px;
-  }
-
-  .level-title {
-    font-size: 24px;
-  }
-}
-
-@media (max-width: 480px) {
-  .products-grid {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

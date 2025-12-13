@@ -1,453 +1,289 @@
 <template>
-  <div>
-    <!-- Model Content -->
-    <main>
-      <div class="model-container">
-        <!-- Top Left - Product Image with Brand -->
-        <div class="model-image">
+  <main class="max-w-6xl mx-auto px-4 py-12">
+    <div v-if="isLoading" class="flex items-center justify-center h-64">
+      <div class="text-gray-500">Loading product…</div>
+    </div>
+
+    <div v-else-if="!product" class="text-center py-20">
+      <h2 class="text-2xl font-semibold">Product not found</h2>
+      <NuxtLink to="/catalog" class="mt-4 inline-block text-blue-600 hover:underline">Back to catalog</NuxtLink>
+    </div>
+
+    <div v-else class="grid md:grid-cols-2 gap-10 items-start">
+      <!-- LEFT: Image -->
+      <div class="space-y-4">
+        <div class="rounded-xl overflow-hidden bg-white dark:bg-gray-800 shadow-lg">
           <img
-            :src="`/assets/product/${productId}/main.png`"
+            :src="product.full_image || '/assets/placeholder.png'"
             :alt="product.name"
+            class="w-full h-[420px] md:h-[520px] object-contain bg-white"
+            loading="lazy"
           />
         </div>
 
-        <!-- Top Right - Product Info -->
-        <div class="model-info">
-          <h1 class="model-name">{{ product.name }}</h1>
-          <div class="model-available">Model is available</div>
-          <div class="model-price">${{ product.price }}</div>
+        <div v-if="product.small_image" class="flex gap-3">
+          <img
+            :src="product.small_image"
+            alt="thumbnail"
+            class="w-20 h-20 object-cover rounded-md border"
+            loading="lazy"
+          />
+        </div>
+      </div>
 
-          <div class="size-selection">
-            <div class="size-title">Select Size</div>
-            <div class="size-options">
-              <div
-                v-for="size in sizes"
-                :key="size"
-                :class="['size-option', { selected: selectedSize === size }]"
-                @click="selectedSize = size"
-              >
-                {{ size }}
-              </div>
-            </div>
+      <!-- RIGHT: Info, sizes, qty, actions -->
+      <div class="space-y-6">
+        <div>
+          <h1 class="text-3xl md:text-4xl font-extrabold leading-tight text-gray-900">{{ product.name }}</h1>
+          <div class="mt-2 flex items-center gap-3">
+            <span :class="product.availability ? 'text-green-600' : 'text-red-500'" class="font-medium">
+              {{ product.availability ? 'In stock' : 'Out of stock' }}
+            </span>
+            <span class="text-sm text-gray-500">• {{ product.amount }} available</span>
           </div>
+        </div>
 
-          <div class="action-buttons">
-            <button class="add-to-cart" :disabled="!user" @click="addToCart">
-              {{ user ? "ADD TO CART" : "LOGIN TO BUY" }}
+        <div class="flex items-end justify-between gap-4">
+          <div class="text-3xl font-extrabold text-gray-900">${{ product.price }}</div>
+          <div class="text-sm text-gray-500">VAT incl.</div>
+        </div>
+
+        <!-- Sizes -->
+        <div>
+          <div class="mb-2 font-medium">Size</div>
+          <div class="flex flex-wrap gap-3">
+            <button
+              v-for="size in parsedSizes"
+              :key="size"
+              :disabled="!isSizeAvailable(size) || !product.availability"
+              @click="selectSize(size)"
+              :aria-pressed="selectedSize === size"
+              :title="isSizeAvailable(size) ? `Select size ${size}` : `Size ${size} not available`"
+              class="relative w-12 h-12 rounded-full flex items-center justify-center text-sm font-semibold transition transform
+                     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
+                     disabled:opacity-40 disabled:cursor-not-allowed"
+              :class="selectedSize === size
+                ? 'bg-black text-white shadow-lg scale-105'
+                : 'bg-white text-gray-800 border border-gray-200 hover:scale-105'"
+            >
+              {{ size }}
+              <span
+                class="absolute -top-1 -right-1 w-3 h-3 rounded-full ring-1 ring-white"
+                :class="isSizeAvailable(size) ? 'bg-green-500' : 'bg-gray-400'"
+                aria-hidden="true"
+              />
             </button>
-            <button class="back-button" @click="goBack">←</button>
           </div>
+          <p v-if="parsedSizes.length === 0" class="text-sm text-red-500 mt-2">No sizes available for this product.</p>
         </div>
 
-        <!-- Bottom Left - Buy Now Section -->
-        <div class="buy-now">
-          <div class="buy-now-title">BUY NOW</div>
-          <div class="buy-now-content">
-            <div class="order-section">
-              <img src="/assets/truck.png" alt="Delivery" class="truck-icon" />
-              <button class="order-button" @click="buyNow">BUY NOW</button>
-              <div class="pickup-options">
-                <div class="pickup-option">
-                  <input
-                    v-model="deliveryMethod"
-                    type="radio"
-                    id="pickup1"
-                    value="store"
-                    name="pickup"
-                  />
-                  <label for="pickup1">Pick up from store</label>
-                </div>
-                <div class="pickup-option">
-                  <input
-                    v-model="deliveryMethod"
-                    type="radio"
-                    id="pickup2"
-                    value="home"
-                    name="pickup"
-                  />
-                  <label for="pickup2">Home delivery</label>
-                </div>
-              </div>
-            </div>
-            <div class="map-section">
-              <img src="/assets/map.png" alt="Store Location" />
-            </div>
+        <!-- Quantity -->
+        <div class="flex items-center gap-4">
+          <div class="font-medium">Quantity</div>
+          <div class="flex items-center border rounded-lg overflow-hidden">
+            <button
+              @click="decreaseQty"
+              :disabled="quantity <= 1"
+              class="px-3 py-2 bg-white hover:bg-gray-100 disabled:opacity-50"
+              aria-label="Decrease quantity"
+            >−</button>
+            <input
+              v-model.number="quantity"
+              type="number"
+              min="1"
+              :max="product.amount"
+              class="w-16 text-center px-2 py-2 outline-none"
+            />
+            <button
+              @click="increaseQty"
+              :disabled="quantity >= product.amount"
+              class="px-3 py-2 bg-white hover:bg-gray-100 disabled:opacity-50"
+              aria-label="Increase quantity"
+            >+</button>
           </div>
+          <div class="ml-3 text-sm text-gray-500">Available: {{ product.amount }}</div>
         </div>
 
-        <!-- Bottom Right - Empty -->
-        <div class="empty-section">
-          <!-- This section is intentionally left empty -->
+        <!-- Actions -->
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button
+            @click="handleAddToCart"
+            :disabled="!canOrder || adding"
+            class="flex-1 px-4 py-3 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 disabled:opacity-50 transition"
+          >
+            {{ adding ? 'Adding…' : 'Add to cart' }}
+          </button>
+
+          <!-- <button
+            @click="handleBuyNow"
+            :disabled="!canOrder || buying"
+            class="flex-1 px-4 py-3 rounded-xl bg-yellow-500 text-black font-semibold hover:bg-yellow-400 disabled:opacity-50 transition"
+          >
+            {{ buying ? 'Processing…' : 'Buy now' }}
+          </button> -->
+        </div>
+
+        <div v-if="statusMessage" :class="['px-4 py-3 rounded-md text-sm', statusType === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700']">
+          {{ statusMessage }}
+        </div>
+
+        <div class="text-sm text-gray-600">
+          <p><span class="font-medium">SKU:</span> #{{ product.id }}</p>
+          <p class="mt-1">Ships within 1–3 business days.</p>
         </div>
       </div>
-
-      <!-- Bottom Frame -->
-      <div class="bottom-frame">
-        <img src="/assets/lowframe.png" alt="Bottom Frame" />
-      </div>
-    </main>
-  </div>
+    </div>
+  </main>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { useRoute } from "vue-router";
-import { useAuth } from "~~/composables/useAuth";
-import { useCsrfToken } from "~~/composables/useCsrfToken";
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { useAuthStore } from '~~/stores/auth'
+import { useCsrfToken } from '~~/composables/useCsrfToken'
+import type { Product } from '~~/server/utils/types'
 
-const route = useRoute();
-const auth = useAuth();
-const user = computed(() => auth.user.value);
+const route = useRoute()
+const auth = useAuthStore()
+const { getHeader } = useCsrfToken()
+const user = computed(() => auth.user)
 
-const productId = computed(() => route.params.id as string);
-const selectedSize = ref(42);
-const deliveryMethod = ref("store");
+const productId = route.params.id as string
 
-const sizes = [39, 40, 41, 42, 43, 44, 45];
+const isLoading = ref(true)
+const product = ref<Product | null>(null)
+const selectedSize = ref<number | null>(null)
+const quantity = ref<number>(1)
 
-const product = ref({
-  name: "Nike Air Max 270",
-  price: 150,
-  brand: "Nike",
-});
+const statusMessage = ref<string | null>(null)
+const statusType = ref<'success' | 'error' | null>(null)
+let statusTimer: ReturnType<typeof setTimeout> | null = null
 
-async function addToCart() {
-  if (!user.value) return;
+const adding = ref(false)
+const buying = ref(false)
 
+function showStatus(msg: string, type: 'success' | 'error' = 'success') {
+  statusMessage.value = msg
+  statusType.value = type
+  if (statusTimer) clearTimeout(statusTimer)
+  statusTimer = setTimeout(() => {
+    statusMessage.value = null
+    statusType.value = null
+  }, 4000)
+}
+
+/**
+ * parsedSizes: поддерживает несколько форматов:
+ * - если product.sizes — уже массив -> приводим элементы к number
+ * - если product.sizes — строка JSON -> парсим
+ * - иначе возвращаем []
+ */
+const parsedSizes = computed<number[]>(() => {
+  if (!product.value) return []
+  const s = product.value.sizes as any
+  if (Array.isArray(s)) {
+    return s.map((x: any) => Number(x)).filter((n: number) => !Number.isNaN(n))
+  }
+  if (typeof s === 'string') {
+    try {
+      const parsed = JSON.parse(s)
+      if (Array.isArray(parsed)) return parsed.map((x: any) => Number(x)).filter((n: number) => !Number.isNaN(n))
+    } catch { /* ignore */ }
+  }
+  return []
+})
+
+function isSizeAvailable(size: number) {
+  // сейчас у нас нет per-size стоков, поэтому ориентируемся на общий amount
+  return (product.value?.amount ?? 0) > 0
+}
+
+function selectSize(size: number) {
+  if (!isSizeAvailable(size)) return
+  selectedSize.value = size
+}
+
+function increaseQty() {
+  if (!product.value) return
+  if (quantity.value < product.value.amount) quantity.value++
+}
+
+function decreaseQty() {
+  if (quantity.value > 1) quantity.value--
+}
+
+async function fetchProduct() {
+  isLoading.value = true
   try {
-    const csrf = useCsrfToken();
-    await $fetch("/api/cart", {
-      method: "POST",
-      body: {
-        product_id: parseInt(productId.value),
-        size: selectedSize.value,
-        amount: 1,
-      },
-      headers: csrf.getHeader(),
-    });
-    alert(`Added ${product.value.name} (Size ${selectedSize.value}) to cart!`);
-  } catch (error) {
-    console.error("Failed to add to cart:", error);
-    alert("Failed to add to cart");
+    const data = await $fetch<Product>(`/api/products/${productId}`, { credentials: 'include' })
+    product.value = { ...data, availability: data.amount > data.ordered_amount }
+    // безопасное присваивание: first size или null
+    selectedSize.value = (parsedSizes.value.length ? (parsedSizes.value[0] ?? null) : null)
+    if (product.value && product.value.amount > 0) {
+      quantity.value = Math.min(quantity.value, product.value.amount)
+    }
+  } catch (err) {
+    console.error('Failed to load product', err)
+    product.value = null
+  } finally {
+    isLoading.value = false
   }
 }
 
-async function buyNow() {
-  if (!user.value) return;
+const canOrder = computed(() => {
+  return !!user.value && !!product.value && product.value.availability && selectedSize.value !== null && quantity.value >= 1 && quantity.value <= (product.value?.amount ?? 0)
+})
 
+async function handleAddToCart() {
+  if (!canOrder.value) {
+    showStatus('Please select size and quantity', 'error')
+    return
+  }
+  adding.value = true
   try {
-    const csrf = useCsrfToken();
-
-    await $fetch("/api/cart/clear", {
-      method: "POST",
-      headers: csrf.getHeader(),
-    });
-
-    await $fetch("/api/cart", {
-      method: "POST",
-      body: {
-        product_id: parseInt(productId.value),
-        size: selectedSize.value,
-        amount: 1,
-      },
-      headers: csrf.getHeader(),
-    });
-
-    await navigateTo("/profile");
-  } catch (error) {
-    console.error("Failed to buy now:", error);
-    alert("Failed to buy now");
+    await $fetch('/api/cart', {
+      method: 'POST',
+      body: { product_id: product.value!.id, size: selectedSize.value, amount: quantity.value },
+      headers: getHeader(),
+      credentials: 'include',
+    })
+    showStatus('Added to cart', 'success')
+  } catch (err: any) {
+    console.error(err)
+    showStatus(err?.data?.message || 'Failed to add to cart', 'error')
+  } finally {
+    adding.value = false
   }
 }
 
-function goBack() {
-  window.history.back();
+async function handleBuyNow() {
+  if (!canOrder.value) {
+    showStatus('Please select size and quantity', 'error')
+    return
+  }
+  buying.value = true
+  try {
+    // clear cart (must include CSRF header)
+    await $fetch('/api/cart/clear', { method: 'POST', headers: getHeader(), credentials: 'include' })
+    // add this item
+    await $fetch('/api/cart', {
+      method: 'POST',
+      body: { product_id: product.value!.id, size: selectedSize.value, amount: quantity.value },
+      headers: getHeader(),
+      credentials: 'include',
+    })
+    navigateTo('/cart')
+  } catch (err: any) {
+    console.error(err)
+    showStatus(err?.data?.message || 'Buy now failed', 'error')
+  } finally {
+    buying.value = false
+  }
 }
+
+onMounted(fetchProduct)
 </script>
 
 <style scoped>
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-/* Model Container */
-.model-container {
-  width: 92%;
-  max-width: 1400px;
-  margin: 40px auto;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 30px;
-  min-height: 70vh;
-}
-
-/* Top Left - Product Image */
-.model-image {
-  grid-column: 1;
-  grid-row: 1;
-  border: 2px solid #3a3a3a;
-  border-radius: 12px;
-  padding: 20px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.model-image img {
-  width: 80%;
-  max-width: 400px;
-  height: 300px;
-  object-fit: contain;
-}
-
-/* Top Right - Product Info */
-.model-info {
-  grid-column: 2;
-  grid-row: 1;
-  padding: 20px;
-}
-
-.model-name {
-  font-size: 36px;
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-
-.model-available {
-  font-size: 18px;
-  color: #4caf50;
-  margin-bottom: 20px;
-}
-
-.model-price {
-  font-size: 28px;
-  font-weight: bold;
-  margin-bottom: 25px;
-}
-
-.size-selection {
-  margin-bottom: 30px;
-}
-
-.size-title {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 15px;
-}
-
-.size-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.size-option {
-  width: 50px;
-  height: 50px;
-  border: 2px solid #ddd;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.size-option:hover {
-  border-color: #3a3a3a;
-}
-
-.size-option.selected {
-  background: #3a3a3a;
-  color: #fff;
-  border-color: #3a3a3a;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-}
-
-.add-to-cart {
-  flex: 1;
-  padding: 15px 25px;
-  background: #000;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 18px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.add-to-cart:hover:not(:disabled) {
-  background: #333;
-}
-
-.add-to-cart:disabled {
-  background: #999;
-  cursor: not-allowed;
-}
-
-.back-button {
-  width: 50px;
-  height: 50px;
-  border: 2px solid #3a3a3a;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  cursor: pointer;
-  font-size: 20px;
-  transition: all 0.3s;
-}
-
-.back-button:hover {
-  background: #f5f5f5;
-}
-
-/* Bottom Left - Buy Now Section */
-.buy-now {
-  grid-column: 1;
-  grid-row: 2;
-  border: 2px solid #3a3a3a;
-  border-radius: 12px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-}
-
-.buy-now-title {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-.buy-now-content {
-  display: flex;
-  gap: 20px;
-  flex: 1;
-}
-
-.order-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.truck-icon {
-  width: 60px;
-  height: auto;
-  margin-bottom: 15px;
-}
-
-.order-button {
-  padding: 12px 20px;
-  background: #000;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  margin-bottom: 20px;
-  transition: background 0.3s;
-}
-
-.order-button:hover {
-  background: #333;
-}
-
-.pickup-options {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.pickup-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.pickup-option input {
-  width: 18px;
-  height: 18px;
-}
-
-.map-section {
-  flex: 1;
-}
-
-.map-section img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
-/* Bottom Frame */
-.bottom-frame {
-  width: 100%;
-  margin-top: 40px;
-}
-
-.bottom-frame img {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
-/* Mobile */
-@media (max-width: 768px) {
-  .model-container {
-    width: 95%;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto auto;
-    gap: 20px;
-    margin: 20px auto;
-  }
-
-  .model-image {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .model-info {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
-  .buy-now {
-    grid-column: 1;
-    grid-row: 3;
-  }
-
-  .empty-section {
-    grid-column: 1;
-    grid-row: 4;
-    display: none;
-  }
-
-  .buy-now-content {
-    flex-direction: column;
-  }
-
-  .action-buttons {
-    flex-direction: column;
-  }
-
-  .back-button {
-    align-self: center;
-  }
-}
+button:focus { outline: none; }
 </style>

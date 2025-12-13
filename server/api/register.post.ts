@@ -17,6 +17,15 @@ export default defineEventHandler(async (event) => {
     const username = body.username.trim();
     const password = body.password;
 
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};:'",.<>/?\\|`~]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      throw new ValidationError(
+        "password",
+        "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character"
+      );
+    }
+
     const existing = await db
       .prepare("SELECT id FROM users WHERE email = ?")
       .get(email);

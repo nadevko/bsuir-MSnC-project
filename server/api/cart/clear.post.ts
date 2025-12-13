@@ -1,5 +1,5 @@
-import db from "../utils/db";
-import { getUserIdFromToken } from "../utils/auth";
+import db from "../../utils/db";
+import { getUserIdFromToken } from "../../utils/auth";
 
 export default defineEventHandler(async (event) => {
   const userId = await getUserIdFromToken(event);

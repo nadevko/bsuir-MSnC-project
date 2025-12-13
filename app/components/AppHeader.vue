@@ -15,7 +15,7 @@
     <div class="flex items-center space-x-3">
       <template v-if="user">
         <NuxtLink to="/profile" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 transition">
-          Profile
+          Cart
         </NuxtLink>
         <button @click="onLogout" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 transition">
           Log Out
